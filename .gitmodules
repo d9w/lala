@@ -1,0 +1,3 @@
+[submodule "src/include/mecacell"]
+	path = src/include/mecacell
+	url = git@github.com:jdisset/mecacell.git
