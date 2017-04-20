@@ -2,8 +2,8 @@
 #define MECACELL_LOGGER_WARN_DISABLE
 #define MECACELL_LOGGER_DBG_DISABLE
 #include <mecacell/mecacell.h>
-#include <mecacell/viewer/viewer.h>
-#include <mecacell/viewer/plugins/meshviewerplugin.hpp>
+#include <mecacellviewer/viewer.h>
+#include <mecacellviewer/plugins/meshviewerplugin.hpp>
 #include "config.hpp"
 #include "viewerplugins/camera.hpp"
 #include "viewerplugins/colors.hpp"

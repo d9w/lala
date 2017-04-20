@@ -1,8 +1,8 @@
 #ifndef DRAWEXTENSIONS_HPP
 #define DRAWEXTENSIONS_HPP
-#include <mecacell/viewer/viewer.h>
+#include <mecacellviewer/viewer.h>
+#include <mecacellviewer/primitives/sphere.hpp>
 #include <mecacell/utilities/grid.hpp>
-#include <mecacell/viewer/primitives/sphere.hpp>
 
 struct GridViewer {
 	QOpenGLShaderProgram shader;
