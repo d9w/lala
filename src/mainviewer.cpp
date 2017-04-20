@@ -9,6 +9,7 @@
 #include "viewerplugins/colors.hpp"
 #include "viewerplugins/complugin.hpp"
 #include "viewerplugins/grid.hpp"
+#include "../mecacell-plugins/viewerplugins/screencapture.hpp"
 
 int main(int argc, char** argv) {
 	Config cfg(argc, argv);
@@ -21,10 +22,11 @@ int main(int argc, char** argv) {
 	CenteredCameraPlugin ccp;
 	GridViewerPlugin gvp;
 	PointViewerPlugin pvp;
+	ScreenCapturePlugin scp;
 	MecacellViewer::Viewer<Config::scenario_t> v(scenario);
 	v.setNbLoopsPerFrame(2);
 	// v.registerPlugins(cmp, gvp, ccp, pvp, comp);
-	v.registerPlugins(cmp, gvp, ccp);
+	v.registerPlugins(cmp, gvp, ccp, comp, scp);
 
 	return v.exec();
 }
