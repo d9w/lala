@@ -40,13 +40,11 @@ You can also use the MecacellViewer to visualize the results:
 ./bin/viewer -f config/best_stingray.json
 ```
 
-CMA-ES is provided using [julia](julialang.org). To run the evolution, you must
+CMA-ES is provided using [julia](https://julialang.org). To run the evolution, you must
 first create a ``shape_defaults.json`` file containing the defaults for the
 desired morphology. CMA-ES is then launched as follows:
 
 ```bash
-cd config
-cp worm_defaults.json shape_defaults.json
-cd ../
+cp config/worm_defaults.json config/shape_defaults.json
 julia runcmaes.jl 1234
 ```
