@@ -42,7 +42,7 @@ end
 
 function fitness(a::Array{Float64})
   printcfg(a, seed)
-  run(pipeline(`./console -f config.json`, stdout="out.log", stderr=string("err.log")))
+  run(pipeline(`./bin/console -f config.json`, stdout="out.log", stderr=string("err.log")))
   readlog(string("err.log"))[2]
 end
 
