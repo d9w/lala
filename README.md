@@ -7,9 +7,9 @@ feedback, and rights are reserved to the authors until further notice following
 the paper acceptance decision.
 
 Videos of the three morphologies can be found as follows:
-+[Worm](https://vimeo.com/214087988)
-+[Quadropus](https://vimeo.com/214086348)
-+[Stingray](https://vimeo.com/214084084)
++ [Worm](https://vimeo.com/214087988)
++ [Quadropus](https://vimeo.com/214086348)
++ [Stingray](https://vimeo.com/214084084)
 
 [MecaCell](https://github.com/jdisset/MecaCell/) should be installed first in a
 different directory. The commit used in this work for the submission was
