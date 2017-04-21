@@ -6,6 +6,11 @@ All of the included materials are subject to change depending on reviewer
 feedback, and rights are reserved to the authors until further notice following
 the paper acceptance decision.
 
+Videos of the three morphologies can be found as follows:
++[Worm](https://vimeo.com/214087988)
++[Quadropus](https://vimeo.com/214086348)
++[Stingray](https://vimeo.com/214084084)
+
 [MecaCell](https://github.com/jdisset/MecaCell/) should be installed first in a
 different directory. The commit used in this work for the submission was
 [3435975](https://github.com/jdisset/MecaCell/commit/3435975c89064ceef1fc13935a1d0bc311cf9417),
