@@ -5,7 +5,12 @@ using DataFrames
 Gadfly.push_theme(Theme(major_label_font="Droid Sans",minor_label_font="Droid Sans",
                         major_label_font_size=18pt,minor_label_font_size=16pt,line_width=0.8mm,
                         key_label_font="Droid Sans",key_label_font_size=16pt))
-colors = [colorant"#000000", colorant"#FF1300",colorant"#0086CE",colorant"#B0F700"]
+# colors = [colorant"#fe9601", colorant"#86269b", colorant"#00d2f1", colorant"#00b796", colorant"#cc0063"]
+colors = [colorant"#000000", colorant"#FF1300",colorant"#0086CE",colorant"#B0F700",
+          colorant"#000000", colorant"#FF1300",colorant"#0375B2",colorant"#ADF300",
+          colorant"#000000", colorant"#E31100",colorant"#066090",colorant"#98D600",
+          colorant"#000000", colorant"#B0271C",colorant"#175170",colorant"#7EA61A",
+          colorant"#000000", colorant"#75322D",colorant"#1F3B4B",colorant"#5B6F2A"]
 
 function get_layer(base::String, l::Int64)
 

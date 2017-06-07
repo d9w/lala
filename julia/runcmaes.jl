@@ -1,9 +1,9 @@
 using JSON
 include("cmaes.jl")
 
-defaults = JSON.parsefile("config/defaults.json")
-shapedefaults = JSON.parsefile("config/shape_defaults.json")
-ranges = JSON.parsefile("config/ranges.json");
+defaults = JSON.parsefile("defaults.json")
+shapedefaults = JSON.parsefile("shape_defaults.json")
+ranges = JSON.parsefile("ranges.json");
 
 seed = length(ARGS) > 0 ? parse(Int64, ARGS[1]) : 0
 srand(seed)
@@ -37,13 +37,18 @@ function readlog(logname::String)
   for i in eachindex(res)
     numres[i,:] = map(x->parse(Float64,x), split(chomp(split(res[i],"::")[2]),","))
   end
+# numres, -(numres[end,4]*1000+sum(numres[:,1]))
   numres, -sum(numres[:,1])
 end
 
 function fitness(a::Array{Float64})
-  printcfg(a, seed)
-  run(pipeline(`./bin/console -f config.json`, stdout="out.log", stderr=string("err.log")))
-  readlog(string("err.log"))[2]
+  fitness = 0
+  for i=1:1
+    printcfg(a, seed+i)
+    run(pipeline(`./console -f config.json`, stdout="out.log", stderr=string("err",i,".log")))
+    fitness += readlog(string("err",i,".log"))[2]
+  end
+  fitness
 end
 
 pmin=cmaes(fitness, cparams, deltas, stopeval=1000)
