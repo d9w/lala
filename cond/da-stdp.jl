@@ -3,7 +3,8 @@
 # Adapted from daspnet.m by Eugene M. Izhikevich
 # https://www.izhikevich.org/publications/daspnet.m
 
-srand(1234)
+seed = length(ARGS) > 0 ? parse(Int64, ARGS[1]) : 0
+srand(seed)
 
 M = 100   # number of post-synaptic connections per neuron
 D = 1     # conduction delay (timesteps between pre and post firing)
@@ -86,6 +87,7 @@ for sec=0:secs-1                      # simulation of 1 minute
         end
     end
     shist[sec+1, :] = [s[n1, syn] sd[n1, syn]]
-    println(shist[sec+1, :])
+    println("S: ", shist[sec+1, :])
 end
+println("R: ", rew)
 nothing
