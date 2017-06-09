@@ -82,7 +82,7 @@ for sec=0:secs-1                      # simulation of 1 minute
         end
         if (mod(t,10) == 0)
             if method == 0 || method == 3
-                s[1:Ne,:] = max(0,min(sm,s[1:Ne,:]+sd[1:Ne,:]));
+                s[1:Ne,:] = max(0,min(sm,s[1:Ne,:]+0.002*sd[1:Ne,:]));
             elseif method == 1 || method == 2
                 s[1:Ne,:] = max(0,min(sm,s[1:Ne,:]+(0.002+DA)*sd[1:Ne,:]));
             end
