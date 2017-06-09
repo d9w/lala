@@ -2,7 +2,8 @@
 # Dennis G Wilson, June 8, 2017
 # Adapted from daspnet.m by Eugene M. Izhikevich
 # https://www.izhikevich.org/publications/daspnet.m
-
+using Logging
+@Logging.configure(level=INFO, filename="log")
 seed = length(ARGS) > 0 ? parse(Int64, ARGS[1]) : 0
 srand(seed)
 
@@ -27,7 +28,7 @@ for i = 1:N
     aux[i] = findn((post.==i) & (s.>0))[1] # neuron of pre-synaptic mapping
 end
 
-secs = 120         # the duration of experiment [s]
+secs = 3600       # the duration of experiment [s]
 T = 1000          # timesteps per sec
 DA = 0            # level of dopamine above the baseline (use neuron-specific)
 rew = Array{Int64}(0)          # reward instances (use array with zero norm)
@@ -40,7 +41,7 @@ u = 0.2.*v        # membrane recovery variable
 n1 = 1            # presynaptic neuron
 syn = 1           # the synapse number to the postsynaptic neuron
 n2 = post[n1,syn] # postsynaptic neuron
-s[n1,syn] = 1.0   # start with 0 value
+s[n1,syn] = 0.0   # start with 0 value
 
 interval = 20     # the coincidence interval for n1 and n2
 n1f = -100      # the last spike of n1
@@ -87,7 +88,8 @@ for sec=0:secs-1                      # simulation of 1 minute
         end
     end
     shist[sec+1, :] = [s[n1, syn] sd[n1, syn]]
-    println("S: ", shist[sec+1, :])
+    @info("S: ", @sprintf("%0.3f,%0.3f,%0.3f,%0.3f,%0.3f", s[n1, syn],
+			  sd[n1, syn], mean(s), std(s), sum(s.>s[n1, syn])))
 end
-println("R: ", rew)
+@info("R: ", rew)
 nothing
