@@ -4,7 +4,9 @@
 # https://www.izhikevich.org/publications/daspnet.m
 using Logging
 @Logging.configure(level=INFO, filename="log")
-seed = length(ARGS) > 0 ? parse(Int64, ARGS[1]) : 0
+method = length(ARGS) > 0 ? parse(Int64, ARGS[1]) : 0
+# method (0) STDP (1) R-STDP (2) DA-STDP (3) A-STDP (4) MS-STDP (5) AMS-STDP
+seed = length(ARGS) > 1 ? parse(Int64, ARGS[2]) : 0
 srand(seed)
 
 M = 100   # number of post-synaptic connections per neuron
@@ -28,7 +30,7 @@ for i = 1:N
     aux[i] = findn((post.==i) & (s.>0))[1] # neuron of pre-synaptic mapping
 end
 
-secs = 3600       # the duration of experiment [s]
+secs = 24*60*60   # the duration of experiment [s]
 T = 1000          # timesteps per sec
 DA = 0            # level of dopamine above the baseline (use neuron-specific)
 rew = Array{Int64}(0)          # reward instances (use array with zero norm)
@@ -67,12 +69,23 @@ for sec=0:secs-1                      # simulation of 1 minute
         end
         v = v+0.5*((0.04*v+5).*v+140-u+tinp)    # for numerical stability
         v = v+0.5*((0.04*v+5).*v+140-u+tinp)    # time step is 0.5 ms
+        if method == 3
+            v += DA
+        end
         u = u+a.*(0.2*v-u)                      # tau = 20 ms
         STDP *= 0.95
 
-        DA -= DA*0.001;
+        if method == 1
+            DA = 0.0
+        elseif method == 2 || method == 3
+            DA -= DA*0.001
+        end
         if (mod(t,10) == 0)
-            s[1:Ne,:] = max(0,min(sm,s[1:Ne,:]+(0.002+DA)*sd[1:Ne,:]));
+            if method == 0 || method == 3
+                s[1:Ne,:] = max(0,min(sm,s[1:Ne,:]+sd[1:Ne,:]));
+            elseif method == 1 || method == 2
+                s[1:Ne,:] = max(0,min(sm,s[1:Ne,:]+(0.002+DA)*sd[1:Ne,:]));
+            end
             sd = 0.99*sd;
         end;
         if any(fired .== n1)
@@ -80,16 +93,15 @@ for sec=0:secs-1                      # simulation of 1 minute
         end
         if any(fired .== n2)
             if (sec*T+t-n1f<interval) & ((sec*T+t)>n1f)
-                append!(rew, [sec*T+t+T+ceil(2*T*rand())])
+                append!(rew, [sec*T+t+T+ceil(T*rand())])
             end
         end
         if any(rew .== sec*T+t)
-            DA = DA+0.5
+            DA = DA + 0.5
         end
     end
     shist[sec+1, :] = [s[n1, syn] sd[n1, syn]]
-    @info("S: ", @sprintf("%0.3f,%0.3f,%0.3f,%0.3f,%0.3f", s[n1, syn],
+    @info("S: ", @sprintf("%0.3f,%0.3f,%0.3f,%0.3f,%0.0f", s[n1, syn],
 			  sd[n1, syn], mean(s), std(s), sum(s.>s[n1, syn])))
 end
-@info("R: ", rew)
 nothing
