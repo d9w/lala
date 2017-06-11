@@ -28,6 +28,7 @@ struct Config {
 	int t_contract = 500;
 	int t_reward = 500;
 	std::string sim_shape = "";
+	std::string neural_shape = "";
 	double cell_radius = 10.0;
 	double cell_mass = 0.001;
 	double cell_stiffness = 10.0;
@@ -42,6 +43,7 @@ struct Config {
 	double reward_signal = 10.0;
 	int ninput = 5;
 	int nhidden = 50;
+  double neural_radius = 200;
 	double input_reward_chance = 0.2;
 	double hidden_reward_chance = 0.1;
 	double dopamine_absorption = 0.1;
@@ -77,6 +79,7 @@ struct Config {
 			else CHKPARAM(t_contract);
 			else CHKPARAM(t_reward);
 			else CHKPARAM(sim_shape);
+			else CHKPARAM(neural_shape);
 			else CHKPARAM(cell_radius);
 			else CHKPARAM(cell_mass);
 			else CHKPARAM(cell_stiffness);
@@ -93,6 +96,7 @@ struct Config {
 			else CHKPARAM(nhidden);
 			else CHKPARAM(input_reward_chance);
 			else CHKPARAM(hidden_reward_chance);
+			else CHKPARAM(neural_radius);
 			else CHKPARAM(dopamine_absorption);
 			else CHKPARAM(dopamine_physical_attenuation);
 			else CHKPARAM(dopamine_delay);

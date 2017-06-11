@@ -44,12 +44,7 @@ template <typename cell_t, typename config_t> struct rewardPlugin {
 		for (int i = 0; i < 10; i++) reward.push_back(0.0);
 	}
 
-	template <typename W> void init(W* w) {
-		for (auto& c : w->cells) com += c->getPosition();
-		com /= w->cells.size();
-		for (auto& c : w->cells)
-			if ((com-c->getPosition()).length() > maxd) maxd = (com-c->getPosition()).length();
-
+	template <typename W> void init(W* w, MecaCell::Vec com, double maxd) {
 		r_points.push_back(MecaCell::Vec(com.coords[0], com.coords[1], com.coords[2]));
 	}
 
@@ -80,33 +75,55 @@ template <typename cell_t, typename config_t> struct rewardPlugin {
 template <typename cell_t, typename config_t> struct neuronPlugin {
 	Scenario<cell_t, config_t>* scenario;
 	std::uniform_real_distribution<> dis;
+  std::vector<std::vector<int>> neural_map;
 	SNN snn;
 
 	neuronPlugin(Scenario<cell_t, config_t>* s) : scenario(s), dis(0, 1),
 		snn(s->config.input_signal, s->config.vt, s->config.vr, s->config.aplus, s->config.aminus) {}
 
-	template <typename W> void init(W* w) {
+	template <typename W> void init(W* w, std::vector<MecaCell::Vec> neuralCoordinates,
+                                  MecaCell::Vec com, double maxd) {
 		MecaCell::Vec zvec(0.0, 0.0, 0.0);
 		for (int i = 0; i < scenario->config.ninput; i++) {
-			bool reward = dis(scenario->gen) < scenario->config.input_reward_chance;
-			snn.neurons.push_back(Neuron(scenario->config.vr, NTinput, 0, reward, zvec));
+			snn.neurons.push_back(Neuron(scenario->config.vr, NTinput, zvec));
+      std::vector<int> empty;
+      neural_map.push_back(empty);
 		}
 		for (int i = 0; i < scenario->config.nhidden; i++) {
-			bool reward = dis(scenario->gen) < scenario->config.hidden_reward_chance;
-			snn.neurons.push_back(Neuron(scenario->config.vr, NThidden, 0, reward, zvec));
+			snn.neurons.push_back(Neuron(scenario->config.vr, NThidden, zvec));
+      std::vector<int> empty;
+      neural_map.push_back(empty);
 		}
-		for (size_t i = 0; i < w->cells.size(); i++) {
-			snn.neurons.push_back(Neuron(scenario->config.vr, NToutput, i, false, w->cells[i]->getPosition()));
+		for (const auto& p : neuralCoordinates) {
+      auto neuron = Neuron(scenario->config.vr, NToutput, p);
+      double da = scenario->config.dopamine_absorption;
+      double dd = scenario->config.dopamine_delay;
+      double dpa = scenario->config.dopamine_physical_attenuation;
+      double dist = (p-com).length()/maxd;
+      double dtx = dd * dist * 10;
+      neuron.decay = exp(-dpa * dist);
+      neuron.delay = dtx;
+      std::vector<int> connected_cells;
+      for (size_t i = 0; i < w->cells.size(); i++) {
+        double dist = (w->cells[i]->getPosition() - p).length();
+        if (dist < scenario->config.neural_radius) {
+          connected_cells.push_back(i);
+        }
+      }
+      snn.neurons.push_back(neuron);
+      neural_map.push_back(connected_cells);
 		}
 
-		std::normal_distribution<> weight_d(scenario->config.excitatory_mean, scenario->config.excitatory_std);
+		std::normal_distribution<> weight_d(scenario->config.excitatory_mean,
+                                        scenario->config.excitatory_std);
 
 		for (size_t i=0; i<snn.neurons.size(); i++) {
 			vector<double> s;
 			for (size_t j=0; j<snn.neurons.size(); j++) {
-				if ((i != j) && ((snn.neurons[j].type == NTinput && snn.neurons[i].type == NThidden) ||
-												 (snn.neurons[j].type == NThidden && snn.neurons[i].type == NThidden) ||
-												 (snn.neurons[j].type == NThidden && snn.neurons[i].type == NToutput))) {
+				if ((i != j) &&
+            ((snn.neurons[j].type == NTinput && snn.neurons[i].type == NThidden) ||
+						(snn.neurons[j].type == NThidden && snn.neurons[i].type == NThidden) ||
+						(snn.neurons[j].type == NThidden && snn.neurons[i].type == NToutput))) {
 					double w = weight_d(scenario->gen);
 					if (w < 0) w = 0.001; if (w > 1) w = 0.999;
 					s.push_back(w);
@@ -122,27 +139,21 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_fire == 0)) {
 			int t = w->getNbUpdates() / scenario->config.t_fire;
 			snn.fire(t, scenario->rp.rsignal);
-			for (const auto& n : snn.neurons) {
-				if (n.t_fired == t && n.type == NToutput) scenario->world.cells[n.iid]->contract = true;
+      for (size_t i = 0; i < snn.neurons.size(); i++) {
+				if (snn.neurons[i].t_fired == t && snn.neurons[i].type == NToutput) {
+          for (size_t j = 0; j < neural_map[i].size(); j++) {
+            scenario->world.cells[neural_map[i][j]]->contract = true;
+          }
+        }
 			}
 		}
 
 		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_train == 0)) {
-			for (auto& n : snn.neurons)
-				if (n.type == NToutput) n.position = scenario->world.cells[n.iid]->getPosition();
-			snn.dopamine_release(scenario->rp.reward, scenario->rp.com, scenario->rp.maxd,
-													 scenario->config.dopamine_absorption, scenario->config.dopamine_delay,
-													 scenario->config.dopamine_physical_attenuation);
-			snn.train();
-			double maxdop = 0.0;
-			for (const auto& n : snn.neurons) if (n.type==NToutput && n.dopamine > maxdop) maxdop = n.dopamine;
-			if (maxdop > 0.0) {
-				for (const auto& n : snn.neurons) {
-					if (n.type == NToutput) {
-						scenario->world.cells[n.iid]->setColorHSV(n.dopamine/maxdop*300, 0.8, 0.8);
-					}
-				}
-			}
+			snn.dopamine_release(scenario->rp.reward,
+                           scenario->config.dopamine_absorption,
+                           scenario->config.dopamine_delay,
+                           scenario->config.dopamine_physical_attenuation);
+      snn.train();
 		}
 	}
 };
@@ -187,7 +198,13 @@ template <typename cell_t, typename config_t> class Scenario {
 		world.setDt(config.sim_dt);
 		duration = config.sim_duration;
 
+    std::cout << "Reading cell coords" << std::endl;
+
 		auto cellsCoordinates = readCellCoordinates(config.sim_shape);
+
+    std::cout << config.neural_shape << std::endl;
+
+		auto neuralCoordinates = readCellCoordinates(config.neural_shape);
 
 		for (const auto& p : cellsCoordinates) {
 			cell_t* c = new cell_t(p);
@@ -205,8 +222,15 @@ template <typename cell_t, typename config_t> class Scenario {
 		for (auto& conn : world.cellPlugin.connections) conn.second->unbreakable = true;
 		for (auto& c : world.cells) c->adhCoef = 0.0;
 
-		rp.init(&world);
-		np.init(&world);
+    MecaCell::Vec com = MecaCell::Vec(0.0, 0.0, 0.0);
+		for (auto& c : world.cells) com += c->getPosition();
+		com /= world.cells.size();
+    double maxd = 0.0;
+		for (auto& c : world.cells)
+			if ((com-c->getPosition()).length() > maxd) maxd = (com-c->getPosition()).length();
+
+		rp.init(&world, com, maxd);
+		np.init(&world, neuralCoordinates, com, maxd);
 	}
 
 	void loop() {

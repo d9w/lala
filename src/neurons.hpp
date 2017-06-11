@@ -12,11 +12,11 @@ struct Neuron {
 	double dopamine = 0.0;
 	NType type = NThidden;
 	int t_fired = 0;
-	int iid = 0;
-	bool reward;
 	MecaCell::Vec position;
+  double decay = 1.0;
+  double delay = 0.0;
 
-	Neuron(double n, NType t, int i, bool r, MecaCell::Vec pos) : nt(n), type(t), iid(i), reward(r), position(pos) {}
+	Neuron(double n, NType t, MecaCell::Vec pos) : nt(n), type(t), position(pos) {}
 
 	void step(int t, double vt, double vr) {
 		nt += input;
@@ -29,7 +29,7 @@ struct Neuron {
 };
 
 std::ostream& operator<<(std::ostream& out, const Neuron& n) {
-	return out << n.nt << ", " << n.t_fired << ", " << n.type << ", " << n.input << ", " << n.iid << ", " <<
+	return out << n.nt << ", " << n.t_fired << ", " << n.type << ", " << n.input << ", " <<
 		n.position.coords[0] << ", " << n.position.coords[1] << ", " << n.position.coords[2];
 }
 
@@ -85,21 +85,19 @@ struct SNN {
 
 		for (size_t i=0; i<neurons.size(); i++) {
 			if (neurons[i].type == NTinput) neurons[i].input = input_signal;
-			if (neurons[i].reward) neurons[i].input += reward_signal;
+			neurons[i].input += reward_signal;
 		}
 	}
 
-	void dopamine_release(vector<double> &reward, MecaCell::Vec com, double maxd, double da, double dd, double dpa) {
+	void dopamine_release(vector<double> &reward, double da, double dd, double dpa) {
 		for (size_t i=0; i<neurons.size(); i++) {
 			if (neurons[i].type == NToutput) {
-				double dist = (neurons[i].position-com).length()/maxd;
-				double dtx = dd * dist * reward.size();
-				int x0 = std::floor(dtx);
-				if (x0 == reward.size()) x0--;
-				double interp_reward = reward[x0] + (dtx - x0) * (reward[x0+1] - reward[x0]);
-				neurons[i].dopamine = (1.0-da) * neurons[i].dopamine + da * exp(-dpa*dist) * interp_reward;
+				int x0 = std::floor(neurons[i].delay);
+				if (x0 == 10) x0--;
+				double interp_reward = reward[x0] + (neurons[i].delay - x0) * (reward[x0+1] - reward[x0]);
+				neurons[i].dopamine = (1.0-da)*neurons[i].dopamine + da*neurons[i].decay*interp_reward;
 			} else {
-				neurons[i].dopamine = (1.0-da) * neurons[i].dopamine + da * reward[0];
+				neurons[i].dopamine = (1.0-da)*neurons[i].dopamine + da*reward[0];
 			}
 		}
 	}
