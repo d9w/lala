@@ -6,6 +6,7 @@ using Logging
 using Distances
 @Logging.configure(level=INFO, filename="log")
 method = length(ARGS) > 0 ? parse(Int64, ARGS[1]) : 0
+method = 2
 # method (0) STDP (1) R-STDP (2) DA-STDP (3) A-STDP (4) MS-STDP (5) AMS-STDP
 seed = length(ARGS) > 1 ? parse(Int64, ARGS[2]) : 0
 srand(seed)
@@ -20,6 +21,8 @@ d = [8*ones(Ne,1); 2*ones(Ni,1)] # in u part of model eq
 sm = 4    # maximal synaptic strength
 absorption = 0.001
 const_r_signal = 1.0
+stimulus_signal = 30
+stimulus_interval = 10
 
 if method == 4 || method == 5
     const_decay = 0.1 # dopamine decay
@@ -43,7 +46,8 @@ for i = 1:N
     aux[i] = findn((post.==i) & (s.>0))[1] # neuron of pre-synaptic mapping
 end
 
-secs = 10*60*60   # the duration of experiment [s]
+group_secs = 600    # time [s] for each group
+secs = 2*group_secs   # the duration of experiment [s]
 T = 1000          # timesteps per sec
 if method == 4 || method == 5
     DA = zeros(N,1)   # level of dopamine above the baseline
@@ -57,20 +61,31 @@ v = -65*ones(N,1) # membrane potential
 u = 0.2.*v        # membrane recovery variable
 
 # TODO: replace this with instrumental coding
-n1 = 1            # presynaptic neuron
-syn = 1           # the synapse number to the postsynaptic neuron
-n2 = post[n1,syn] # postsynaptic neuron
-s[n1,syn] = 0.0   # start with 0 value
+groups = shuffle!(collect(1:N))
+S_group = groups[1:50]
+A_group = groups[51:100]
+B_group = groups[101:150]
 
 interval = 20     # the coincidence interval for n1 and n2
-n1f = -100      # the last spike of n1
+A_count = 0       # number of A group firings
+B_count = 0       # number of B group firings
 shist = zeros(Float64, secs, 2) # history of s over time
 
 for sec=0:secs-1                      # simulation of 1 minute
+    if sec % stimulus_interval == 0
+        stimulus = rand(1:T)
+    else
+        stimulus = 0
+    end
+    A_count = 0
+    B_count = 0
     for t=1:T                       # simulation of 1 sec
         tinp = 13*(rand(N,1)-0.5)   # random thalamic input
         if method == 3 || method == 5
             tinp += const_r_signal*DA
+        end
+        if t == stimulus
+            tinp[S_group] += stimulus_signal
         end
         fired = find(v.>=30);       # indices of fired neurons
         if length(fired)>0
@@ -109,12 +124,21 @@ for sec=0:secs-1                      # simulation of 1 minute
             end
             sd = 0.99*sd
         end
-        if any(fired .== n1)
-            n1f = sec*T+t
-        end
-        if any(fired .== n2)
-            if (sec*T+t-n1f<interval) & ((sec*T+t)>n1f)
-                append!(rew, [sec*T+t+T+ceil(T*rand())])
+        if stimulus > 0
+            if t >= stimulus && t <= stimulus + interval
+                A_count += length(intersect(fired, A_group))
+                B_count += length(intersect(fired, B_group))
+            end
+            if t == stimulus + interval
+                if sec < group_secs
+                    if A_count > B_count
+                        append!(rew, [sec*T+t+ceil(T*rand())])
+                    end
+                else
+                    if B_count > A_count
+                        append!(rew, [sec*T+t+ceil(T*rand())])
+                    end
+                end
             end
         end
         if any(rew .== sec*T+t)
@@ -127,8 +151,13 @@ for sec=0:secs-1                      # simulation of 1 minute
             DA[rs] += decay[rs] * 0.5
         end
     end
-    shist[sec+1, :] = [s[n1, syn] sd[n1, syn]]
-    @info("S: ", @sprintf("%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.0f,%d", s[n1, syn],
-			  sd[n1, syn], STDP[n1], mean(s), std(s), sum(s.>=s[n1, syn]), rew[end]))
+    if sec % stimulus_interval == 0
+        @info("S: ", @sprintf("%d,%d,%d,%d,%0.3f,%0.3f,%0.3f,%d",
+                              sec, A_count, B_count, stimulus, mean(s),
+                              mean(s[S_group,:][find(indexin(post[S_group, :], A_group))]),
+                              mean(s[S_group,:][find(indexin(post[S_group, :], B_group))]),
+                              rew[end]))
+
+    end
 end
 nothing
