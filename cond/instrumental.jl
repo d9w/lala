@@ -4,7 +4,7 @@
 # https://www.izhikevich.org/publications/daspnet.m
 using Logging
 using Distances
-@Logging.configure(level=INFO)#, filename="log")
+@Logging.configure(level=INFO, filename="log")
 method = length(ARGS) > 0 ? parse(Int64, ARGS[1]) : 0
 # method (0) STDP (1) R-STDP (2) DA-STDP (3) A-STDP (4) MS-STDP (5) AMS-STDP
 seed = length(ARGS) > 1 ? parse(Int64, ARGS[2]) : 0
