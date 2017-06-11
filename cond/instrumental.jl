@@ -21,7 +21,7 @@ d = [8*ones(Ne,1); 2*ones(Ni,1)] # in u part of model eq
 sm = 4    # maximal synaptic strength
 absorption = 0.001
 const_r_signal = 1.0
-stimulus_signal = 30
+stimulus_signal = 15
 stimulus_interval = 10
 
 if method == 4 || method == 5
@@ -46,7 +46,7 @@ for i = 1:N
     aux[i] = findn((post.==i) & (s.>0))[1] # neuron of pre-synaptic mapping
 end
 
-group_secs = 600    # time [s] for each group
+group_secs = 4000    # time [s] for each group
 secs = 2*group_secs   # the duration of experiment [s]
 T = 1000          # timesteps per sec
 if method == 4 || method == 5
@@ -61,7 +61,7 @@ v = -65*ones(N,1) # membrane potential
 u = 0.2.*v        # membrane recovery variable
 
 # TODO: replace this with instrumental coding
-groups = shuffle!(collect(1:N))
+groups = shuffle!(collect(1:Ne))
 S_group = groups[1:50]
 A_group = groups[51:100]
 B_group = groups[101:150]
