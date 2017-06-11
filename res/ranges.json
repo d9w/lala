@@ -1,0 +1,8 @@
+{
+	"reward_signal": [0.0, 1.0],
+	"input_reward_chance": [0.0, 0.5],
+	"hidden_reward_chance": [0.0, 0.5],
+	"dopamine_absorption": [0.0, 1.0],
+	"dopamine_physical_attenuation": [0.0, 10.0],
+	"dopamine_delay": [0.0, 1.0]
+}

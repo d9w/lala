@@ -1,0 +1,23 @@
+{
+	"sim_duration": 250.0,
+	"sim_dt": 0.01,
+	"fluid_density": 0.0001,
+	"reward_distance_mean":2.0,
+	"reward_distance_std":0.5,
+	"cell_mass": 0.05,
+	"cell_stiffness": 1000,
+	"cell_adhesion": 2500,
+	"t_fire": 20,
+	"t_train": 80,
+	"t_contract": 20,
+	"t_reward": 80,
+	"vt": -50.0,
+	"vr": -60.0,
+	"excitatory_mean": 0.1,
+	"excitatory_std": 0.5,
+	"input_signal": 1.0,
+	"ninput":10,
+	"nhidden":50,
+	"aplus":0.0001,
+	"aminus":0.0001
+}
