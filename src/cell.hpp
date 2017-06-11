@@ -11,7 +11,7 @@ class Cell : public MecaCell::ConnectableCell<Cell, MecaCell::SpringBody> {
 
  public:
 	double adhCoef = 25.0;
-	double contractRatio = 0.8;
+	double contractRatio = 0.9;
 	double contractDuration = 0.4;
 	bool contract = false;
 
