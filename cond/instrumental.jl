@@ -6,7 +6,6 @@ using Logging
 using Distances
 @Logging.configure(level=INFO, filename="log")
 method = length(ARGS) > 0 ? parse(Int64, ARGS[1]) : 0
-method = 2
 # method (0) STDP (1) R-STDP (2) DA-STDP (3) A-STDP (4) MS-STDP (5) AMS-STDP
 seed = length(ARGS) > 1 ? parse(Int64, ARGS[2]) : 0
 srand(seed)
@@ -119,7 +118,10 @@ for sec=0:secs-1                      # simulation of 1 minute
                 s[1:Ne,:] = max(0,min(sm,s[1:Ne,:]+(0.002+DA)*sd[1:Ne,:]))
             elseif method == 4 || method == 5
                 for i=1:Ne
-                    s[i,:] = max(0,min(sm,s[i,:]+(0.002+DA[i])*sd[i,:]))
+                    for j=1:100
+                        s[i,j] = max(0,min(sm,s[i,j] +
+                                          (0.002+(DA[i]+DA[post[i,j]])/2.0)*sd[i,j]))
+                    end
                 end
             end
             sd = 0.99*sd
