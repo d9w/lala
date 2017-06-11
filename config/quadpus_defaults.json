@@ -1,4 +1,6 @@
 {
 	"sim_shape": "config/quadpus.shape",
-	"cell_radius": 40
+	"neural_shape": "config/quadpus_neurons.shape",
+  "cell_radius": 20,
+	"neural_radius": 80
 }

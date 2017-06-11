@@ -11,11 +11,11 @@
 	"t_train": 80,
 	"t_contract": 20,
 	"t_reward": 80,
-	"vt": -50.0,
-	"vr": -60.0,
-	"excitatory_mean": 0.1,
-	"excitatory_std": 0.5,
-	"input_signal": 1.0,
-	"ninput":10,
-	"nhidden":50
+	"vt": 30.0,
+	"vr": -65.0,
+	"inhibitory_ratio": 0.2,
+  "aminus":1.5,
+  "aplus":1.0,
+	"ninput":100,
+	"nhidden":500
 }

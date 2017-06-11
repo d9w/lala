@@ -1,4 +1,6 @@
 {
 	"sim_shape": "config/stingray.shape",
-	"cell_radius": 25
+	"neural_shape": "config/stingray_neurons.shape",
+	"cell_radius": 8.1,
+	"neural_radius": 15
 }
