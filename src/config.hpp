@@ -37,8 +37,7 @@ struct Config {
 	double aplus = 0.005;
 	double vt = 64.0;
 	double vr = 0.0;
-	double excitatory_mean = 0.8;
-	double excitatory_std = 0.05;
+  double inhibitory_ratio = 0.2;
 	double input_signal = 1.0;
 	double reward_signal = 10.0;
 	int ninput = 5;
@@ -49,6 +48,7 @@ struct Config {
 	double dopamine_absorption = 0.1;
 	double dopamine_physical_attenuation = 0.0;
 	double dopamine_delay = 0.0;
+	double da_factor = 1.0;
 	double fluid_density = 1e-4;
 	double reward_distance_mean = 5.0;
 	double reward_distance_std = 2.0;
@@ -88,8 +88,7 @@ struct Config {
 			else CHKPARAM(aplus);
 			else CHKPARAM(vt);
 			else CHKPARAM(vr);
-			else CHKPARAM(excitatory_mean);
-			else CHKPARAM(excitatory_std);
+			else CHKPARAM(inhibitory_ratio);
 			else CHKPARAM(input_signal);
 			else CHKPARAM(reward_signal);
 			else CHKPARAM(ninput);
@@ -100,6 +99,7 @@ struct Config {
 			else CHKPARAM(dopamine_absorption);
 			else CHKPARAM(dopamine_physical_attenuation);
 			else CHKPARAM(dopamine_delay);
+			else CHKPARAM(da_factor);
 			else CHKPARAM(fluid_density);
 			else CHKPARAM(reward_distance_mean);
 			else CHKPARAM(reward_distance_std);

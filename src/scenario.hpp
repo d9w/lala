@@ -23,7 +23,6 @@ template <typename cell_t, typename config_t> struct contractPlugin {
 					w->cells[i]->startContracting();
 				}
 			}
-			MecaCell::logger<MecaCell::DBG>("Contract :: ", ccount);
 		}
 	}
 };
@@ -32,7 +31,6 @@ template <typename cell_t, typename config_t> struct rewardPlugin {
 	Scenario<cell_t, config_t>* scenario;
 	MecaCell::Vec com = MecaCell::Vec(0.0, 0.0, 0.0);
 	double maxd = 0.0;
-	double rsignal = 0.0;
 	vector<double> reward;
 	vector<MecaCell::Vec> r_points;
 	int r_index=0;
@@ -50,6 +48,7 @@ template <typename cell_t, typename config_t> struct rewardPlugin {
 
 	template <typename W> void preBehaviorUpdate(W* w) {
 		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_reward == 0)) {
+      // MecaCell::logger<MecaCell::DBG>("Calculating reward");
 			int t = w->getNbUpdates() / scenario->config.t_reward;
 			MecaCell::Vec ncom(0.0, 0.0, 0.0);
 			for (auto& c : w->cells) {
@@ -59,14 +58,13 @@ template <typename cell_t, typename config_t> struct rewardPlugin {
 			ncom /= w->cells.size();
 			double pdistance = (r_points[r_index]-com).length()/maxd;
 			double distance = (r_points[r_index]-ncom).length()/maxd;
-			double r = (pdistance-distance)/0.01;
+			double r = pdistance-distance;
 			if (r_index==0) r*=-1.0;
-			r=std::min(r, 1.0); r=std::max(r, -1.0);
+			r=max(0.0, min(1.0, r));
 			reward.pop_back();
 			reward.insert(reward.begin(), r);
-			rsignal = (std::exp(scenario->config.reward_signal)-1)*(std::exp(r)-1);
 			com = ncom;
-			MecaCell::logger<MecaCell::INF>("Reward :: ", distance, ",", reward[0], ",", t, ",", r_index,
+			MecaCell::logger<MecaCell::INF>("Reward :: ", distance, ",", reward[0], ",", t,
 																			",", com.coords[0], ",", com.coords[1], ",", com.coords[2]);
 		}
 	}
@@ -79,7 +77,7 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 	SNN snn;
 
 	neuronPlugin(Scenario<cell_t, config_t>* s) : scenario(s), dis(0, 1),
-		snn(s->config.input_signal, s->config.vt, s->config.vr, s->config.aplus, s->config.aminus) {}
+		snn(s->config.vt, s->config.vr, s->config.aplus, s->config.aminus) {}
 
 	template <typename W> void init(W* w, std::vector<MecaCell::Vec> neuralCoordinates,
                                   MecaCell::Vec com, double maxd) {
@@ -114,46 +112,57 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
       neural_map.push_back(connected_cells);
 		}
 
-		std::normal_distribution<> weight_d(scenario->config.excitatory_mean,
-                                        scenario->config.excitatory_std);
-
 		for (size_t i=0; i<snn.neurons.size(); i++) {
 			vector<double> s;
+			vector<double> sd;
 			for (size_t j=0; j<snn.neurons.size(); j++) {
+        sd.push_back(0.0);
 				if ((i != j) &&
             ((snn.neurons[j].type == NTinput && snn.neurons[i].type == NThidden) ||
 						(snn.neurons[j].type == NThidden && snn.neurons[i].type == NThidden) ||
 						(snn.neurons[j].type == NThidden && snn.neurons[i].type == NToutput))) {
-					double w = weight_d(scenario->gen);
-					if (w < 0) w = 0.001; if (w > 1) w = 0.999;
-					s.push_back(w);
+          if (dis(scenario->gen) < scenario->config.inhibitory_ratio) {
+            s.push_back(-1.0);
+          } else {
+            s.push_back(1.0);
+          }
 				} else {
 					s.push_back(0.0);
 				}
 			}
 			snn.synapses.push_back(s);
+			snn.synapses_delta.push_back(sd);
 		}
 	}
 
 	template <typename W> void preBehaviorUpdate(W* w) {
 		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_fire == 0)) {
+      // MecaCell::logger<MecaCell::DBG>("Firing");
+      vector<double> inputs;
+      for (int i = 0; i < (scenario->config.ninput+scenario->config.nhidden); i++) {
+        inputs.push_back(13*(dis(scenario->gen)-0.3));
+      }
 			int t = w->getNbUpdates() / scenario->config.t_fire;
-			snn.fire(t, scenario->rp.rsignal);
+      // MecaCell::logger<MecaCell::DBG>("Calling fire");
+			snn.fire(inputs, scenario->config.reward_signal, scenario->config.da_factor);
+      // MecaCell::logger<MecaCell::DBG>("Contraction");
       for (size_t i = 0; i < snn.neurons.size(); i++) {
-				if (snn.neurons[i].t_fired == t && snn.neurons[i].type == NToutput) {
+				if (snn.neurons[i].fired && snn.neurons[i].type == NToutput) {
           for (size_t j = 0; j < neural_map[i].size(); j++) {
             scenario->world.cells[neural_map[i][j]]->contract = true;
           }
         }
 			}
+      // MecaCell::logger<MecaCell::DBG>("Done firing");
 		}
 
 		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_train == 0)) {
+      // MecaCell::logger<MecaCell::DBG>("Dopamine release");
 			snn.dopamine_release(scenario->rp.reward,
                            scenario->config.dopamine_absorption,
                            scenario->config.dopamine_delay,
                            scenario->config.dopamine_physical_attenuation);
-      snn.train();
+      // MecaCell::logger<MecaCell::DBG>("Done with dopamine release");
 		}
 	}
 };
@@ -198,12 +207,10 @@ template <typename cell_t, typename config_t> class Scenario {
 		world.setDt(config.sim_dt);
 		duration = config.sim_duration;
 
-    std::cout << "Reading cell coords" << std::endl;
-
+		MecaCell::logger<MecaCell::DBG>("Cell coords :: ", config.sim_shape);
 		auto cellsCoordinates = readCellCoordinates(config.sim_shape);
 
-    std::cout << config.neural_shape << std::endl;
-
+		MecaCell::logger<MecaCell::DBG>("Cell coords :: ", config.neural_shape);
 		auto neuralCoordinates = readCellCoordinates(config.neural_shape);
 
 		for (const auto& p : cellsCoordinates) {
@@ -215,6 +222,7 @@ template <typename cell_t, typename config_t> class Scenario {
 			world.addCell(c);
 		}
 
+		MecaCell::logger<MecaCell::DBG>("Added cells");
 		world.update();
 		world.update();
 
@@ -222,6 +230,7 @@ template <typename cell_t, typename config_t> class Scenario {
 		for (auto& conn : world.cellPlugin.connections) conn.second->unbreakable = true;
 		for (auto& c : world.cells) c->adhCoef = 0.0;
 
+		MecaCell::logger<MecaCell::DBG>("Initializing plugins");
     MecaCell::Vec com = MecaCell::Vec(0.0, 0.0, 0.0);
 		for (auto& c : world.cells) com += c->getPosition();
 		com /= world.cells.size();
@@ -231,6 +240,7 @@ template <typename cell_t, typename config_t> class Scenario {
 
 		rp.init(&world, com, maxd);
 		np.init(&world, neuralCoordinates, com, maxd);
+		MecaCell::logger<MecaCell::DBG>("Done initializing scenario");
 	}
 
 	void loop() {
