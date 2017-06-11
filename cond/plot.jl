@@ -10,10 +10,17 @@ colors = [colorant"#e66101", colorant"#fdb863", colorant"#b2abd2", colorant"#5e3
 
 function read_res(base::String)
 
-    allres = zeros(3600, 5, 20)
+    ress = Array{Array{Float64}}(20)
 
     for i=0:19
-        allres[:,:,i+1] = readcsv("$base/s_$i.log")
+        ress[i+1] = readcsv("$base/s_$i.log")
+    end
+
+    allres = zeros(maximum(size.(ress))..., 20)
+
+    for i=1:20
+        si = size(ress[i])
+        allres[1:si[1], 1:si[2], i] = ress[i]
     end
 
     allres
@@ -22,7 +29,7 @@ end
 function plot_single(allres::Array{Float64}, title::String, color_i=0)
     meanres = mean(allres, 3)[:,:,1]
     stdres = std(allres, 3)[:,:,1]
-    x = 1:100:size(allres, 1)
+    x = Int64.(ceil.(linspace(1, size(allres,1), 100)))
     layers = [layer(x=x, y=meanres[x,1], ymin=meanres[x,1]-stdres[x,1]*0.5,
                     ymax=meanres[x,1]+stdres[x,1]*0.5, Geom.line, Geom.ribbon,
                     style(default_color=colors[color_i+1])),
