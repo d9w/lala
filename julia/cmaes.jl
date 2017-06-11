@@ -95,7 +95,7 @@ function cmaes(objFun::Function, pinit::AbstractVector, sigma::AbstractVector; l
 
     iter = 0
 
-    @printf("%i-%i CMA-ES\n",lambda,mu);
+    @info(@sprintf("%i-%i CMA-ES\n",lambda,mu))
 
     # -------------------- Generation Loop --------------------------------
     counteval = 0  # the next 40 lines contain the 20 lines of interesting code
@@ -176,7 +176,7 @@ function cmaes(objFun::Function, pinit::AbstractVector, sigma::AbstractVector; l
     previousFitness = arfitness[1]
 
     #Display some information every 25 iterations
-    @printf("iter: %d \t fcount: %d \t fval: %2.2e \t axis-ratio: %2.2e \n",iter,counteval, arfitness[1], maximum(diagD) / minimum(diagD) )
+    @info(@sprintf("iter: %d \t fcount: %d \t fval: %2.2e \t axis-ratio: %2.2e \n",iter,counteval, arfitness[1], maximum(diagD) / minimum(diagD) ))
 
     end # while, end generation loop
 

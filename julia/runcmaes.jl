@@ -1,4 +1,6 @@
 using JSON
+using Logging
+@Logging.configure(level=INFO, filename="log")
 include("cmaes.jl")
 
 defaults = JSON.parsefile("defaults.json")
