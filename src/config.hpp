@@ -37,7 +37,8 @@ struct Config {
 	double aplus = 0.005;
 	double vt = 64.0;
 	double vr = 0.0;
-  double inhibitory_ratio = 0.2;
+  double inhibitory_ratio = 0.1;
+  double connection_ratio = 0.4;
 	double input_signal = 1.0;
 	double reward_signal = 10.0;
 	int ninput = 5;
@@ -89,6 +90,7 @@ struct Config {
 			else CHKPARAM(vt);
 			else CHKPARAM(vr);
 			else CHKPARAM(inhibitory_ratio);
+			else CHKPARAM(connection_ratio);
 			else CHKPARAM(input_signal);
 			else CHKPARAM(reward_signal);
 			else CHKPARAM(ninput);

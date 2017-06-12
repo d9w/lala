@@ -118,13 +118,16 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 			for (size_t j=0; j<snn.neurons.size(); j++) {
         sd.push_back(0.0);
 				if ((i != j) &&
-            ((snn.neurons[j].type == NTinput && snn.neurons[i].type == NThidden) ||
+            ((snn.neurons[j].type == NTinput && snn.neurons[i].type == NTinput) ||
 						(snn.neurons[j].type == NThidden && snn.neurons[i].type == NThidden) ||
-						(snn.neurons[j].type == NThidden && snn.neurons[i].type == NToutput))) {
-          if (dis(scenario->gen) < scenario->config.inhibitory_ratio) {
+						(snn.neurons[j].type == NTinput && snn.neurons[i].type == NToutput))) {
+            double conn = dis(scenario->gen);
+          if (conn < scenario->config.inhibitory_ratio) {
             s.push_back(-1.0);
-          } else {
+          } else if (conn < scenario->config.connection_ratio) {
             s.push_back(1.0);
+          } else {
+            s.push_back(0.0);
           }
 				} else {
 					s.push_back(0.0);
@@ -139,8 +142,8 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_fire == 0)) {
       // MecaCell::logger<MecaCell::DBG>("Firing");
       vector<double> inputs;
-      for (int i = 0; i < (scenario->config.ninput+scenario->config.nhidden); i++) {
-        inputs.push_back(13*(dis(scenario->gen)-0.3));
+      for (int i = 0; i < (scenario->config.ninput); i++) {
+        inputs.push_back(17*(dis(scenario->gen)-0.3));
       }
 			int t = w->getNbUpdates() / scenario->config.t_fire;
       // MecaCell::logger<MecaCell::DBG>("Calling fire");
@@ -149,11 +152,10 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
       for (size_t i = 0; i < snn.neurons.size(); i++) {
 				if (snn.neurons[i].fired && snn.neurons[i].type == NToutput) {
           for (size_t j = 0; j < neural_map[i].size(); j++) {
-            scenario->world.cells[neural_map[i][j]]->contract = true;
+            scenario->world.cells[neural_map[i][j]]->startContracting();
           }
         }
 			}
-      // MecaCell::logger<MecaCell::DBG>("Done firing");
 		}
 
 		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_train == 0)) {
@@ -162,7 +164,20 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
                            scenario->config.dopamine_absorption,
                            scenario->config.dopamine_delay,
                            scenario->config.dopamine_physical_attenuation);
-      // MecaCell::logger<MecaCell::DBG>("Done with dopamine release");
+      double maxdop = 0.0;
+      for (const auto& n : snn.neurons) {
+        if (n.type==NToutput && n.dopamine > maxdop) maxdop = n.dopamine;
+      }
+      if (maxdop > 0.0) {
+        for (size_t i = 0; i < snn.neurons.size(); i++) {
+          if (snn.neurons[i].type == NToutput) {
+            for (size_t j = 0; j < neural_map[i].size(); j++) {
+              scenario->world.cells[neural_map[i][j]]->
+                setColorHSV(snn.neurons[i].dopamine/maxdop*300, 0.8, 0.8);
+            }
+          }
+        }
+      }
 		}
 	}
 };
@@ -174,7 +189,6 @@ template <typename cell_t, typename config_t> class Scenario {
 	world_t world;
 	std::random_device rd;
 	std::mt19937 gen;
-	contractPlugin<cell_t, config_t> cp;
 	rewardPlugin<cell_t, config_t> rp;
 	neuronPlugin<cell_t, config_t> np;
 	double duration = 0.0;
@@ -196,14 +210,14 @@ template <typename cell_t, typename config_t> class Scenario {
 	}
 
  public:
-	Scenario(config_t& c) : config(c), rp(this), np(this), cp(this), gen(rd()) {}
+	Scenario(config_t& c) : config(c), rp(this), np(this), gen(rd()) {}
 
 	void init() {
 
 		gen.seed(config.seed);
 		sfp.fluidDensity = config.fluid_density;
 		sfp.fluidVelocity = {0, 0, 0};
-		world.registerPlugins(rp, np, cp, sfp);
+		world.registerPlugins(rp, np, sfp);
 		world.setDt(config.sim_dt);
 		duration = config.sim_duration;
 

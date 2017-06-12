@@ -73,7 +73,7 @@ struct SNN {
 		// MecaCell::logger<MecaCell::DBG>("STDP");
 		for (size_t i=0; i<neurons.size(); i++) {
 			if (neurons[i].fired) {
-        total_fired += 1;
+        if (neurons[i].type == NToutput) total_fired += 1;
 				for (size_t j=0; j<neurons.size(); j++) {
 					double s = synapses[j][i];
           // pre-synaptic STDP (LTP)
@@ -92,6 +92,7 @@ struct SNN {
 		double total_delta = 0.0;
 		double total_da = 0.0;
 		double total_sd = 0.0;
+		double total_s = 0.0;
 		for (size_t i=0; i<neurons.size(); i++) {
       for (size_t j=0; j<neurons.size(); j++) {
         double s = synapses[i][j];
@@ -103,6 +104,7 @@ struct SNN {
           total_delta += std::abs(s - sp);
           total_da += da_coeff;
           total_sd += sd;
+          total_s += sp;
           synapses[i][j] = sp;
         }
       }
@@ -117,7 +119,7 @@ struct SNN {
     double total_input = 0.0;
 		// MecaCell::logger<MecaCell::DBG>("next input");
 		for (size_t i=0; i<neurons.size(); i++) {
-			if (neurons[i].type == NTinput || neurons[i].type == NThidden) {
+			if (neurons[i].type == NTinput) {
         neurons[i].input = inputs[i];
         total_input += inputs[i];
       }
@@ -126,11 +128,12 @@ struct SNN {
 
     total_delta/=neurons.size();
     total_da/=neurons.size();
-    total_sd/=neurons.size();
     total_input/=neurons.size();
-		MecaCell::logger<MecaCell::DBG>("STDP :: ", total_delta, " DA :: ", total_da,
+    total_sd/=(neurons.size()*neurons.size());
+    total_s/=(neurons.size()*neurons.size());
+		MecaCell::logger<MecaCell::INF>("STDP :: ", total_delta, " DA :: ", total_da,
                                     " SD :: ", total_sd, " fired :: ", total_fired,
-                                    " input :: ", total_input);
+                                    " input :: ", total_input, " s :: ", total_s);
 
 
 		// MecaCell::logger<MecaCell::DBG>("done firing");
