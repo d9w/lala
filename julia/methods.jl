@@ -46,7 +46,7 @@ function fitness(a::Array{Float64}, method::String)
   fitness = 0
   for i=1:1
     printcfg(a, seed+i)
-    run(pipeline(`./console -f config.json`, stdout="out.log", stderr=string("err",i,".log")))
+    run(pipeline(`./console -f config.json`, stdout="out.log", stderr=string(method,".log")))
     fitness += readlog(string(method,".log"))[2]
   end
   fitness
