@@ -58,7 +58,7 @@ template <typename cell_t, typename config_t> struct rewardPlugin {
 			ncom /= w->cells.size();
 			double pdistance = (r_points[r_index]-com).length()/maxd;
 			double distance = (r_points[r_index]-ncom).length()/maxd;
-			double r = pdistance-distance;
+			double r = (pdistance-distance)*50.0;
 			if (r_index==0) r*=-1.0;
 			r=max(0.0, min(1.0, r));
 			reward.pop_back();
