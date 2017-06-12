@@ -8,7 +8,7 @@ Gadfly.push_theme(Theme(major_label_font="Droid Sans", minor_label_font="Droid S
                         key_label_font_size=16pt))
 colors = [colorant"#e41a1c", colorant"#377eb8", colorant"#4daf4a", colorant"#984ea3",
           colorant"#ff7f00", colorant"#ffff33", colorant"#a65628", colorant"#f781bf"]
-logs = ["rstdp", "dastdp", "dmstdp", "ifstdp", "ifdmstdp"]
+logs = ["rstdp", "dastdp", "ifstdp", "dmstdp", "ifdmstdp"]
 
 function readlog(logname::String)
     res = readlines(open(logname))
@@ -20,7 +20,7 @@ function readlog(logname::String)
 end
 
 function get_all(base::String)
-    res = zeros(length(logs), 1000, 6, 20)
+    res = zeros(length(logs), 1500, 6, 20)
     for i=0:19
         for l in eachindex(logs)
             log = string(base, "/", i, "_", logs[l], ".log")
@@ -39,14 +39,18 @@ function plot_all(base::String)
     x = 1:size(res,2)
     for l in eachindex(logs)
         append!(layers,
-                [layer(x=meanres[l,x,3], y=meanres[l,x,1],
-                       ymax=meanres[l,x,1]+stdres[l,x,1]*0.5,
-                       ymin=meanres[l,x,1]-stdres[l,x,1]*0.5,
-                       Geom.smooth(method=:loess,smoothing=0.1),
-                       Geom.ribbon(),
+                [layer(x=meanres[l,x,3], y=meanres[l,x,2],
+                       # ymax=meanres[l,x,2]+stdres[l,x,2]*0.5,
+                       # ymin=meanres[l,x,2]-stdres[l,x,2]*0.5,
+                       Geom.line,
+                       # Geom.ribbon(),
                        style(default_color=colors[l]))])
     end
     plt = plot(layers..., Guide.title("Stingray"),
+               Guide.manual_color_key(
+                   "",
+                   ["R-STDP", "DA-STDP", "IF-STDP", "DM-STDP", "IFDM-STDP"],
+                   colors[1:5]),
                Guide.xlabel("Time"),
                Guide.ylabel("Distance"))
     draw(PDF(string("plot/stingray.pdf"), 6inch, 4inch), plt)
