@@ -34,13 +34,13 @@ function plot_single(allres::Array{Float64}, title::String, color_i=0)
     stdres = std(allres, 3)[:,:,1]
     # x = Int64.(ceil.(linspace(1, size(allres,1), 100)))
     x = 1:size(allres,1)
-    layers = [layer(x=meanres[x,1], y=a_gt_b[x], Geom.smooth(method=:loess,smoothing=0.1),
+    layers = [layer(x=meanres[x,1]/10, y=a_gt_b[x], Geom.smooth(method=:loess,smoothing=0.1),
                     style(default_color=colorant"red")),#colors[color_i+1])),
-              layer(x=meanres[x,1], y=b_gt_a[x], Geom.smooth(method=:loess,smoothing=0.1),
+              layer(x=meanres[x,1]/10, y=b_gt_a[x], Geom.smooth(method=:loess,smoothing=0.1),
                     style(default_color=colorant"blue"))]#colors[color_i+2]))]
     plt = plot(layers..., Guide.title(title), Guide.xlabel("Time [s]"),
                Guide.ylabel("Synaptic weight [mV]"))
-    draw(PDF(string(title, ".pdf"), 6inch, 4inch), plt)
+    draw(PDF(string("plot/",title, ".pdf"), 6inch, 4inch), plt)
     layers
 end
 
@@ -63,6 +63,39 @@ function plot_weight(allres::Array{Float64}, title::String, color_i=0)
                     style(default_color=colors[color_i+2]))]
     plt = plot(layers..., Guide.title(title), Guide.xlabel("Episodes [10s]"),
                Guide.ylabel("Synaptic weight [mV]"))
-    draw(PDF(string(title, ".pdf"), 6inch, 4inch), plt)
+    draw(PDF(string("plot/",title, ".pdf"), 6inch, 4inch), plt)
     layers
+end
+
+function plot_all(pltf::Function)
+    stdp_layers = pltf(read_res("results/471926"), "STDP")
+    r_stdp_layers = pltf(read_res("results/471926"), "R-STDP")
+    da_stdp_layers = pltf(read_res("results/471920"), "DA-STDP")
+    a_stdp_layers = pltf(read_res("results/471986"), "IF-STDP")
+    dm_stdp_layers = pltf(read_res("results/471936"), "DM-STDP")
+    ifdm_stdp_layers = pltf(read_res("results/471940"), "IFDM-STDP")
+
+    ymin = 1.0
+    ymax = 1.8
+
+    function plt_layers(layers, xlabel::String)
+        plot(layers..., xintercept=[400.0], Guide.xlabel(xlabel), Guide.ylabel(nothing),
+             Coord.cartesian(xmin=0, xmax=800, ymin=ymin, ymax=ymax),
+             Guide.yticks(ticks=collect(ymin:0.2:ymax), orientation=:horizontal),
+             Geom.vline(color=colorant"gray", size=0.01mm),
+             Guide.xticks(ticks=[0, 200, 400, 600, 800], orientation=:horizontal))
+    end
+
+    plt = hstack(
+        plot(r_stdp_layers..., xintercept=[400.0],
+             Guide.xlabel("R-STDP"), Guide.ylabel("Synaptic weight [mV]"),
+             Coord.cartesian(xmin=0, xmax=800, ymin=ymin, ymax=ymax),
+             Guide.yticks(ticks=collect(ymin:0.2:ymax), orientation=:horizontal),
+             Geom.vline(color=colorant"gray", size=0.01mm),
+             Guide.xticks(ticks=[0, 200, 400, 600, 800], orientation=:horizontal)),
+        plt_layers(da_stdp_layers, "DA-STDP"),
+        plt_layers(a_stdp_layers, "IF-STDP"),
+        plt_layers(dm_stdp_layers, "DM-STDP"),
+        plt_layers(ifdm_stdp_layers, "IFDM-STDP"))
+    draw(PDF(string("cond_stdp.pdf"), 20inch, 4inch), plt)
 end

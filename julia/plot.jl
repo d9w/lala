@@ -65,9 +65,9 @@ function plot_all(paths::Array{String}, labels::Array{String})
 end
 
 function plot_params(base::String, params::Array{Float64})
-  labels = ["p<sub>$i</sub>" for i=0:5]
+  labels = ["p<sub>$i</sub>" for i=0:4]
 
-  nparams = params[[8,6,7,3,2,4],:]
+  nparams = params[[5, 4, 2, 1, 3],:]
 
   p = DataFrame()
 
@@ -88,7 +88,7 @@ end
 function get_params(base::String)
 
   allfits = zeros(2000, 20)
-  allparams = zeros(9, 20)
+  allparams = zeros(6, 20)
 
   for i=0:19
     res = readcsv("$base/$i.log")
@@ -109,7 +109,7 @@ end
 
 function best_params(base::String, pbest::Int64=10)
 
-  allres = zeros(40000, 9)
+  allres = zeros(40000, 6)
 
   for i=0:19
     res = readcsv("$base/$i.log")
@@ -126,4 +126,47 @@ function best_params(base::String, pbest::Int64=10)
   plot_params(base, bestparams[2:end, :])
 
   allres, bestparams
+end
+
+function all_res(base::String)
+    ress = Array{Array{Float64}}(20)
+
+    for i=0:19
+        ress[i+1] = readcsv("$base/$i.log")
+    end
+
+    allres = zeros(maximum(size.(ress))..., 20)
+    for i=1:20
+        si = size(ress[i])
+        allres[1:si[1], 1:si[2], i] = ress[i]
+    end
+
+    allres
+end
+
+function best_config(base::String, defaults::String, shape::String, ranges::String, s::Int64=0)
+    allres = all_res(base)
+    minres = minimum(allres[:,3,:])
+    minind = findn(allres.==minres)
+    a = allres[minind[1],4:end,minind[3]]
+
+    defaults = JSON.parsefile(defaults)
+    shapedefaults = JSON.parsefile(shape)
+    ranges = JSON.parsefile(ranges)
+
+    for i in eachindex(a)
+        if (a[i] < 0.0) || (a[i] > 1.0)
+            a[i] = mod(a[i], 1.0)
+        end
+    end
+    i = 1
+    for (k, v) in ranges
+        defaults[k] = v[1]+(v[2]-v[1])*a[i]
+        i += 1
+    end
+    for (k, v) in shapedefaults
+        defaults[k] = v
+    end
+    defaults["seed"] = s
+    defaults
 end
