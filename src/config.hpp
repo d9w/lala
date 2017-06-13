@@ -39,8 +39,9 @@ struct Config {
 	double vr = 0.0;
   double inhibitory_ratio = 0.1;
   double connection_ratio = 0.4;
-	double input_signal = 1.0;
 	double reward_signal = 10.0;
+	double stimulus_signal = 15.0;
+	double stimulus_interval = 10.0;
 	int ninput = 5;
 	int nhidden = 50;
   double neural_radius = 200;
@@ -91,8 +92,9 @@ struct Config {
 			else CHKPARAM(vr);
 			else CHKPARAM(inhibitory_ratio);
 			else CHKPARAM(connection_ratio);
-			else CHKPARAM(input_signal);
 			else CHKPARAM(reward_signal);
+			else CHKPARAM(stimulus_signal);
+			else CHKPARAM(stimulus_interval);
 			else CHKPARAM(ninput);
 			else CHKPARAM(nhidden);
 			else CHKPARAM(input_reward_chance);

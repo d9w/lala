@@ -10,23 +10,6 @@
 
 template <typename cell_t, typename config_t> class Scenario;
 
-template <typename cell_t, typename config_t> struct contractPlugin {
-	Scenario<cell_t, config_t>* scenario;
-
-	contractPlugin(Scenario<cell_t, config_t>* s) : scenario(s) {}
-	template <typename W> void preBehaviorUpdate(W* w) {
-		if (w->getNbUpdates() % scenario->config.t_contract == 0) {
-			int ccount = 0;
-			for (size_t i = 0; i < w->cells.size(); ++i) {
-				if (w->cells[i]->contract) {
-					ccount++;
-					w->cells[i]->startContracting();
-				}
-			}
-		}
-	}
-};
-
 template <typename cell_t, typename config_t> struct rewardPlugin {
 	Scenario<cell_t, config_t>* scenario;
 	MecaCell::Vec com = MecaCell::Vec(0.0, 0.0, 0.0);
@@ -74,6 +57,7 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 	Scenario<cell_t, config_t>* scenario;
 	std::uniform_real_distribution<> dis;
   std::vector<std::vector<int>> neural_map;
+  int stimulus_timing = 0;
 	SNN snn;
 
 	neuronPlugin(Scenario<cell_t, config_t>* s) : scenario(s), dis(0, 1),
@@ -115,23 +99,21 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 		for (size_t i=0; i<snn.neurons.size(); i++) {
 			vector<double> s;
 			vector<double> sd;
+      if (dis(scenario->gen) < scenario->config.inhibitory_ratio) {
+        snn.neurons[i].inhibitory = true;
+      }
 			for (size_t j=0; j<snn.neurons.size(); j++) {
         sd.push_back(0.0);
-				if ((i != j) &&
-            ((snn.neurons[j].type == NTinput && snn.neurons[i].type == NTinput) ||
-						(snn.neurons[j].type == NThidden && snn.neurons[i].type == NThidden) ||
-						(snn.neurons[j].type == NTinput && snn.neurons[i].type == NToutput))) {
-            double conn = dis(scenario->gen);
-          if (conn < scenario->config.inhibitory_ratio) {
+        double conn = dis(scenario->gen);
+        if (conn < scenario->config.connection_ratio) {
+          if (snn.neurons[i].inhibitory) {
             s.push_back(-1.0);
-          } else if (conn < scenario->config.connection_ratio) {
-            s.push_back(1.0);
           } else {
-            s.push_back(0.0);
+            s.push_back(1.0);
           }
-				} else {
-					s.push_back(0.0);
-				}
+        } else {
+          s.push_back(0.0);
+        }
 			}
 			snn.synapses.push_back(s);
 			snn.synapses_delta.push_back(sd);
@@ -142,12 +124,19 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_fire == 0)) {
       // MecaCell::logger<MecaCell::DBG>("Firing");
       vector<double> inputs;
-      for (int i = 0; i < (scenario->config.ninput); i++) {
-        inputs.push_back(17*(dis(scenario->gen)-0.3));
+      for (int i = 0; i < (snn.neurons.size()); i++) {
+        inputs.push_back(13*(dis(scenario->gen)-0.5));
       }
-			int t = w->getNbUpdates() / scenario->config.t_fire;
+      if (stimulus_timing > scenario->config.stimulus_interval) {
+        MecaCell::logger<MecaCell::DBG>("Stimulus");
+        for (int i = 0; i < scenario->config.ninput; i++) {
+          inputs[i] += scenario->config.stimulus_signal;
+        }
+        stimulus_timing = 0;
+      }
+      stimulus_timing += 1;
       // MecaCell::logger<MecaCell::DBG>("Calling fire");
-			snn.fire(inputs, scenario->config.reward_signal, scenario->config.da_factor);
+			snn.fire(inputs, scenario->config.reward_signal);
       // MecaCell::logger<MecaCell::DBG>("Contraction");
       for (size_t i = 0; i < snn.neurons.size(); i++) {
 				if (snn.neurons[i].fired && snn.neurons[i].type == NToutput) {
@@ -158,7 +147,13 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 			}
 		}
 
-		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_train == 0)) {
+		if ((w->getNbUpdates() > 0) &&
+        (w->getNbUpdates() % scenario->config.t_train == 0)) {
+      snn.train(scenario->config.da_factor);
+    }
+
+		if ((w->getNbUpdates() > 0) &&
+        (w->getNbUpdates() % scenario->config.t_reward== 0)) {
       // MecaCell::logger<MecaCell::DBG>("Dopamine release");
 			snn.dopamine_release(scenario->rp.reward,
                            scenario->config.dopamine_absorption,
@@ -233,6 +228,7 @@ template <typename cell_t, typename config_t> class Scenario {
 			c->getBody().setStiffness(config.cell_stiffness);
 			c->getBody().setMass(config.cell_mass);
 			c->adhCoef = config.cell_adhesion;
+      c->originalRadius = config.cell_radius;
 			world.addCell(c);
 		}
 

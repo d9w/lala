@@ -17,6 +17,7 @@ struct Neuron {
 	MecaCell::Vec position;
   double decay = 1.0;
   double delay = 0.0;
+  bool inhibitory = false;
 
 	Neuron(double n, NType t, MecaCell::Vec pos) : v(n), type(t), position(pos) {}
 
@@ -28,7 +29,11 @@ struct Neuron {
     u = u+0.2*(0.2*v-u);
 		if (v >= vt) {
 			v = vr;
-      u = u+8;
+      if (inhibitory) {
+        u += 2;
+      } else {
+        u += 8;
+      }
       stdp = 0.1;
       fired = true;
 		}
@@ -53,7 +58,7 @@ struct SNN {
 	SNN() {}
 	SNN(double t, double r, double p, double m) : vt(t), vr(r), aplus(p), aminus(m) {}
 
-	void fire(std::vector<double> inputs, double reward_signal, double da_factor) {
+	void fire(std::vector<double> inputs, double reward_signal) {
 		// MecaCell::logger<MecaCell::DBG>("stepping");
 		for (size_t i=0; i<neurons.size(); i++) {
 			neurons[i].step(vt, vr);
@@ -63,17 +68,22 @@ struct SNN {
 		for (size_t i=0; i<neurons.size(); i++) {
 			if (neurons[i].fired) {
 				for (size_t j=0; j<neurons.size(); j++) {
-					double s = synapses[j][i];
-					neurons[j].input += s;
+					neurons[j].input += synapses[i][j];
 				}
 			}
 		}
 
-    int total_fired=0;
+		// MecaCell::logger<MecaCell::DBG>("next input");
+		for (size_t i=0; i<neurons.size(); i++) {
+      neurons[i].input += inputs[i] + reward_signal*neurons[i].dopamine;
+		}
+		// MecaCell::logger<MecaCell::DBG>("done firing");
+	}
+
+  void train(double da_factor) {
 		// MecaCell::logger<MecaCell::DBG>("STDP");
 		for (size_t i=0; i<neurons.size(); i++) {
 			if (neurons[i].fired) {
-        if (neurons[i].type == NToutput) total_fired += 1;
 				for (size_t j=0; j<neurons.size(); j++) {
 					double s = synapses[j][i];
           // pre-synaptic STDP (LTP)
@@ -82,17 +92,13 @@ struct SNN {
           }
           // post-synaptic STDP (LTD)
 					if (synapses[i][j] > 0.0) {
-            synapses_delta[i][j] += aminus * neurons[i].stdp;
+            synapses_delta[i][j] -= aminus * neurons[i].stdp;
           }
         }
       }
     }
 
 		// MecaCell::logger<MecaCell::DBG>("weight update");
-		double total_delta = 0.0;
-		double total_da = 0.0;
-		double total_sd = 0.0;
-		double total_s = 0.0;
 		for (size_t i=0; i<neurons.size(); i++) {
       for (size_t j=0; j<neurons.size(); j++) {
         double s = synapses[i][j];
@@ -101,10 +107,6 @@ struct SNN {
           double da_coeff = (neurons[i].dopamine + neurons[j].dopamine)/2.0;
           double sp = s + (0.01*(1.0-da_factor) + da_factor*da_coeff) * sd;
           sp = max(0.00001, min(2.0, sp));
-          total_delta += std::abs(s - sp);
-          total_da += da_coeff;
-          total_sd += sd;
-          total_s += sp;
           synapses[i][j] = sp;
         }
       }
@@ -115,29 +117,7 @@ struct SNN {
         synapses_delta[i][j] *= 0.9;
       }
     }
-
-    double total_input = 0.0;
-		// MecaCell::logger<MecaCell::DBG>("next input");
-		for (size_t i=0; i<neurons.size(); i++) {
-			if (neurons[i].type == NTinput) {
-        neurons[i].input = inputs[i];
-        total_input += inputs[i];
-      }
-			neurons[i].input += reward_signal*neurons[i].dopamine;
-		}
-
-    total_delta/=neurons.size();
-    total_da/=neurons.size();
-    total_input/=neurons.size();
-    total_sd/=(neurons.size()*neurons.size());
-    total_s/=(neurons.size()*neurons.size());
-		MecaCell::logger<MecaCell::INF>("STDP :: ", total_delta, " DA :: ", total_da,
-                                    " SD :: ", total_sd, " fired :: ", total_fired,
-                                    " input :: ", total_input, " s :: ", total_s);
-
-
-		// MecaCell::logger<MecaCell::DBG>("done firing");
-	}
+  }
 
 	void dopamine_release(vector<double> &reward, double da, double dd, double dpa) {
 		for (size_t i=0; i<neurons.size(); i++) {
