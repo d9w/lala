@@ -14,7 +14,7 @@ struct Neuron {
 	double dopamine = 0.0;
   bool fired = false;
 	NType type = NThidden;
-	MecaCell::Vec position;
+	MecaCell::Vec position = MecaCell::Vec(0,0,0);
   double decay = 1.0;
   double delay = 0.0;
   bool inhibitory = false;
@@ -75,7 +75,8 @@ struct SNN {
 
 		// MecaCell::logger<MecaCell::DBG>("next input");
 		for (size_t i=0; i<neurons.size(); i++) {
-      neurons[i].input += inputs[i] + reward_signal*neurons[i].dopamine;
+      neurons[i].input += inputs[i];
+      neurons[i].input += reward_signal*neurons[i].dopamine;
 		}
 		// MecaCell::logger<MecaCell::DBG>("done firing");
 	}
@@ -106,7 +107,7 @@ struct SNN {
           double sd = synapses_delta[i][j];
           double da_coeff = (neurons[i].dopamine + neurons[j].dopamine)/2.0;
           double sp = s + (0.01*(1.0-da_factor) + da_factor*da_coeff) * sd;
-          sp = max(0.00001, min(2.0, sp));
+          sp = max(0.00001, min(4.0, sp));
           synapses[i][j] = sp;
         }
       }
@@ -117,6 +118,54 @@ struct SNN {
         synapses_delta[i][j] *= 0.9;
       }
     }
+  }
+
+  double get_da_mean() {
+    double da_mean = 0.0;
+    for (size_t i=0; i<neurons.size(); i++) {
+      da_mean += neurons[i].dopamine;
+    }
+    return da_mean / neurons.size();
+  }
+
+  double get_da_std(double da_mean) {
+    double da_std = 0.0;
+    for (size_t i=0; i<neurons.size(); i++) {
+      da_std += pow(neurons[i].dopamine - da_mean, 2);
+    }
+    return sqrt(da_std / neurons.size());
+  }
+
+  double get_weight_mean() {
+    double weight_mean = 0.0;
+    int n_synapse = 0;
+    for (size_t i=0; i<neurons.size(); i++) {
+      if (!neurons[i].inhibitory) {
+        for (size_t j=0; j<neurons.size(); j++) {
+          if (synapses[i][j] > 0.0) {
+            weight_mean += synapses[i][j];
+            n_synapse += 1;
+          }
+        }
+      }
+    }
+    return weight_mean / n_synapse;
+  }
+
+  double get_weight_std(double weight_mean) {
+    double weight_std = 0.0;
+    int n_synapse = 0;
+    for (size_t i=0; i<neurons.size(); i++) {
+      if (!neurons[i].inhibitory) {
+        for (size_t j=0; j<neurons.size(); j++) {
+          if (synapses[i][j] > 0.0) {
+            weight_std += pow(synapses[i][j] - weight_mean, 2);
+            n_synapse += 1;
+          }
+        }
+      }
+    }
+    return sqrt(weight_std / n_synapse);
   }
 
 	void dopamine_release(vector<double> &reward, double da, double dd, double dpa) {

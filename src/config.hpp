@@ -42,6 +42,7 @@ struct Config {
 	double reward_signal = 10.0;
 	double stimulus_signal = 15.0;
 	double stimulus_interval = 10.0;
+	int stimulus_groups = 20;
 	int ninput = 5;
 	int nhidden = 50;
   double neural_radius = 200;
@@ -95,6 +96,7 @@ struct Config {
 			else CHKPARAM(reward_signal);
 			else CHKPARAM(stimulus_signal);
 			else CHKPARAM(stimulus_interval);
+			else CHKPARAM(stimulus_groups);
 			else CHKPARAM(ninput);
 			else CHKPARAM(nhidden);
 			else CHKPARAM(input_reward_chance);

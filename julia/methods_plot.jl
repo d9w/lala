@@ -20,12 +20,18 @@ function readlog(logname::String)
 end
 
 function get_all(base::String)
-    res = zeros(length(logs), 1500, 6, 20)
+    ress = Array{Array{Float64}}(length(logs), 20)
     for i=0:19
         for l in eachindex(logs)
             log = string(base, "/", i, "_", logs[l], ".log")
             numres = readlog(log)
-            res[l, :, :, i+1] = numres
+            ress[l, i+1] = numres
+        end
+    end
+    res = zeros(length(logs), size(ress[1])..., 20)
+    for i=1:20
+        for l in eachindex(logs)
+            res[l, :, :, i] = ress[l, i]
         end
     end
     res
@@ -39,11 +45,11 @@ function plot_all(base::String)
     x = 1:size(res,2)
     for l in eachindex(logs)
         append!(layers,
-                [layer(x=meanres[l,x,3], y=meanres[l,x,2],
-                       # ymax=meanres[l,x,2]+stdres[l,x,2]*0.5,
-                       # ymin=meanres[l,x,2]-stdres[l,x,2]*0.5,
+                [layer(x=meanres[l,x,3], y=meanres[l,x,1],
+                       ymax=meanres[l,x,1]+stdres[l,x,1]*0.5,
+                       ymin=meanres[l,x,1]-stdres[l,x,1]*0.5,
                        Geom.line,
-                       # Geom.ribbon(),
+                       Geom.ribbon(),
                        style(default_color=colors[l]))])
     end
     plt = plot(layers..., Guide.title("Stingray"),

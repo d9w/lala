@@ -5,6 +5,7 @@
 #include <mecacell/utilities/obj3D.hpp>
 #include <random>
 #include <cmath>
+#include <math.h>
 #include "config.hpp"
 #include "neurons.hpp"
 
@@ -13,10 +14,10 @@ template <typename cell_t, typename config_t> class Scenario;
 template <typename cell_t, typename config_t> struct rewardPlugin {
 	Scenario<cell_t, config_t>* scenario;
 	MecaCell::Vec com = MecaCell::Vec(0.0, 0.0, 0.0);
+	MecaCell::Vec init_com = MecaCell::Vec(0.0, 0.0, 0.0);
 	double maxd = 0.0;
+  double max_velocity = 0.0;
 	vector<double> reward;
-	vector<MecaCell::Vec> r_points;
-	int r_index=0;
 	std::normal_distribution<> distances;
 	std::normal_distribution<> angles;
 
@@ -25,30 +26,46 @@ template <typename cell_t, typename config_t> struct rewardPlugin {
 		for (int i = 0; i < 10; i++) reward.push_back(0.0);
 	}
 
-	template <typename W> void init(W* w, MecaCell::Vec com, double maxd) {
-		r_points.push_back(MecaCell::Vec(com.coords[0], com.coords[1], com.coords[2]));
+	template <typename W> void init(W* w, MecaCell::Vec c, double m) {
+    init_com = c; com = c; maxd = m;
 	}
 
 	template <typename W> void preBehaviorUpdate(W* w) {
-		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_reward == 0)) {
+		if ((w->getNbUpdates() > 0) &&
+        (w->getNbUpdates() % scenario->config.t_reward == 0)) {
       // MecaCell::logger<MecaCell::DBG>("Calculating reward");
 			int t = w->getNbUpdates() / scenario->config.t_reward;
 			MecaCell::Vec ncom(0.0, 0.0, 0.0);
 			for (auto& c : w->cells) {
 				ncom += c->getPosition();
-				if ((com-c->getPosition()).length() > maxd) maxd = (com-c->getPosition()).length();
 			}
 			ncom /= w->cells.size();
-			double pdistance = (r_points[r_index]-com).length()/maxd;
-			double distance = (r_points[r_index]-ncom).length()/maxd;
-			double r = (pdistance-distance)*50.0;
-			if (r_index==0) r*=-1.0;
-			r=max(0.0, min(1.0, r));
+			double pdistance = (init_com-com).length();
+      double distance = (init_com-ncom).length();
+			double velocity = distance-pdistance;
+      double r = 0.0;
+      if (t > 10 && velocity > max_velocity) {
+        if (max_velocity > 0.0) {
+          r = 10.0 * (velocity - max_velocity) / max_velocity;
+        }
+        max_velocity = velocity;
+      }
+      max_velocity *= 0.99;
 			reward.pop_back();
 			reward.insert(reward.begin(), r);
 			com = ncom;
-			MecaCell::logger<MecaCell::INF>("Reward :: ", distance, ",", reward[0], ",", t,
-																			",", com.coords[0], ",", com.coords[1], ",", com.coords[2]);
+      scenario->np.stimulus_timing = 0;
+
+      /* LOG INFO */
+      double weight_mean = scenario->np.snn.get_weight_mean();
+      double weight_std = scenario->np.snn.get_weight_std(weight_mean);
+      double da_mean = scenario->np.snn.get_da_mean();
+      double da_std = scenario->np.snn.get_da_std(da_mean);
+			MecaCell::logger<MecaCell::INF>("Reward :: ", distance, ",", velocity,",",
+                                      max_velocity, ",",
+                                      reward[0], ",", t, ",", weight_mean, ",",
+                                      weight_std, ",", da_mean, ",", da_std);
+      /* END LOG INFO */
 		}
 	}
 };
@@ -58,6 +75,8 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 	std::uniform_real_distribution<> dis;
   std::vector<std::vector<int>> neural_map;
   int stimulus_timing = 0;
+  int stimulus_group = 0;
+  double max_dopamine = 0.0;
 	SNN snn;
 
 	neuronPlugin(Scenario<cell_t, config_t>* s) : scenario(s), dis(0, 1),
@@ -78,23 +97,29 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 		}
 		for (const auto& p : neuralCoordinates) {
       auto neuron = Neuron(scenario->config.vr, NToutput, p);
-      double da = scenario->config.dopamine_absorption;
-      double dd = scenario->config.dopamine_delay;
-      double dpa = scenario->config.dopamine_physical_attenuation;
       double dist = (p-com).length()/maxd;
-      double dtx = dd * dist * 10;
-      neuron.decay = exp(-dpa * dist);
-      neuron.delay = dtx;
-      std::vector<int> connected_cells;
-      for (size_t i = 0; i < w->cells.size(); i++) {
-        double dist = (w->cells[i]->getPosition() - p).length();
-        if (dist < scenario->config.neural_radius) {
-          connected_cells.push_back(i);
+      neuron.decay = exp(-scenario->config.dopamine_physical_attenuation*dist);
+      neuron.delay = scenario->config.dopamine_delay * dist * 10;
+      snn.neurons.push_back(neuron);
+      std::vector<int> empty;
+      neural_map.push_back(empty);
+		}
+
+    for (size_t i = 0; i < w->cells.size(); i++) {
+      double min_dist = 1e9;
+      int min_ind = 0;
+      for (size_t j=0; j<snn.neurons.size(); j++) {
+        if (snn.neurons[j].type == NToutput) {
+          double dist = (w->cells[i]->getPosition() -
+                         snn.neurons[j].position).length();
+          if (dist < min_dist) {
+            min_dist = dist;
+            min_ind = j;
+          }
         }
       }
-      snn.neurons.push_back(neuron);
-      neural_map.push_back(connected_cells);
-		}
+      neural_map[min_ind].push_back(i);
+    }
 
 		for (size_t i=0; i<snn.neurons.size(); i++) {
 			vector<double> s;
@@ -104,6 +129,9 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
       }
 			for (size_t j=0; j<snn.neurons.size(); j++) {
         sd.push_back(0.0);
+        // if ((snn.neurons[i].type == NTinput &&  snn.neurons[j].type == NThidden) ||
+        //     (snn.neurons[i].type == NThidden && snn.neurons[j].type == NThidden) ||
+        //     (snn.neurons[i].type == NThidden && snn.neurons[j].type == NToutput)) {
         double conn = dis(scenario->gen);
         if (conn < scenario->config.connection_ratio) {
           if (snn.neurons[i].inhibitory) {
@@ -114,6 +142,9 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
         } else {
           s.push_back(0.0);
         }
+      // } else {
+      //     s.push_back(0.0);
+      //   }
 			}
 			snn.synapses.push_back(s);
 			snn.synapses_delta.push_back(sd);
@@ -121,17 +152,25 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 	}
 
 	template <typename W> void preBehaviorUpdate(W* w) {
-		if ((w->getNbUpdates() > 0) && (w->getNbUpdates() % scenario->config.t_fire == 0)) {
+		if ((w->getNbUpdates() > 0) &&
+        (w->getNbUpdates() % scenario->config.t_fire == 0)) {
       // MecaCell::logger<MecaCell::DBG>("Firing");
       vector<double> inputs;
       for (int i = 0; i < (snn.neurons.size()); i++) {
         inputs.push_back(13*(dis(scenario->gen)-0.5));
       }
-      if (stimulus_timing > scenario->config.stimulus_interval) {
+      if ((stimulus_timing > scenario->config.stimulus_interval) &&
+          dis(scenario->gen) > 0.75) {
         MecaCell::logger<MecaCell::DBG>("Stimulus");
-        for (int i = 0; i < scenario->config.ninput; i++) {
+        int groupsize = int(scenario->config.ninput /
+                            scenario->config.stimulus_groups);
+        int start = stimulus_group * groupsize;
+        int end = (stimulus_group + 1)* groupsize;
+        for (int i = start; i < end; i++) {
           inputs[i] += scenario->config.stimulus_signal;
         }
+        stimulus_group = (stimulus_group + 1) %
+          (scenario->config.stimulus_groups - 1);
         stimulus_timing = 0;
       }
       stimulus_timing += 1;
@@ -159,16 +198,22 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
                            scenario->config.dopamine_absorption,
                            scenario->config.dopamine_delay,
                            scenario->config.dopamine_physical_attenuation);
-      double maxdop = 0.0;
+      double maxda = 0.0;
+      double minda = 100.0;
       for (const auto& n : snn.neurons) {
-        if (n.type==NToutput && n.dopamine > maxdop) maxdop = n.dopamine;
+        if (n.type==NToutput && n.dopamine > maxda) maxda = n.dopamine;
+        if (n.type==NToutput && n.dopamine < minda) minda = n.dopamine;
       }
-      if (maxdop > 0.0) {
+      if (maxda > 0.0) {
+        if (maxda > max_dopamine) max_dopamine = maxda;
+        double denom = maxda - minda;
+        if (denom == 0.0) denom = 1.0;
         for (size_t i = 0; i < snn.neurons.size(); i++) {
           if (snn.neurons[i].type == NToutput) {
             for (size_t j = 0; j < neural_map[i].size(); j++) {
               scenario->world.cells[neural_map[i][j]]->
-                setColorHSV(snn.neurons[i].dopamine/maxdop*300, 0.8, 0.8);
+                setColorHSV((snn.neurons[i].dopamine-minda)/denom*300, 0.8,
+                            0.8*maxda/max_dopamine);
             }
           }
         }

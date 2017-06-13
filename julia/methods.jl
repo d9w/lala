@@ -58,12 +58,14 @@ end
 # p_1  "da_factor"                     => Any[0.0,1.0]
 # p_0  "reward_signal"                 => Any[0.0,2.0]
 
+stdp = [0.0, 0.0, 1.0, 0.0, 0.0]
 rstdp = [0.0, 0.0, 1.0, 1.0, 0.0]
 dastdp = [0.0, 0.0, 0.001, 1.0, 0.0]
 dmstdp = [0.01, 1.0, 0.001, 1.0, 0.0]
 ifstdp = [0.01, 1.0, 0.001, 0.0, 0.5]
 ifdmstdp = [0.01, 1.0, 0.001, 1.0, 0.5]
 
+fitness(rstdp, "stdp")
 fitness(rstdp, "rstdp")
 fitness(dastdp, "dastdp")
 fitness(dmstdp, "dmstdp")

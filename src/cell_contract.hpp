@@ -31,9 +31,13 @@ class Cell : public MecaCell::ConnectableCell<Cell, MecaCell::SpringBody> {
 
 	template <typename W> void updateBehavior(W& w) {
 		if (contracting) {
+      currentRadius = this->body.getRestRadius();
+      step = (1-contractRatio) * originalRadius * 2.0 * (w.getDt() / contractDuration);
 			contractTime += w.getDt();
-      double desiredRadius = originalRadius -
-        2 * (contractTime/contractDuration) * contractRatio * originalRadius;
+      double cp = max(0.0, min(1.0, abs(contractTime - (contractDuration/2.0))/
+                               (contractDuration/2.0)));
+      double desiredRadius = (1.0-cp*(1.0-contractRatio))*originalRadius;
+      std::cerr << cp << "," << desiredRadius << " ";
       if (desiredRadius < currentRadius) {
         currentRadius += step;
         this->body.setRestRadius(currentRadius);
@@ -41,11 +45,6 @@ class Cell : public MecaCell::ConnectableCell<Cell, MecaCell::SpringBody> {
         currentRadius -= step;
         this->body.setRestRadius(currentRadius);
       }
-			if (contractTime > contractDuration) {
-				contracting = false;
-				contractTime = 0.0;
-				this->body.setRestRadius(originalRadius);
-			}
 		}
 	}
 };

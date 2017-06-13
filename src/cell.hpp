@@ -12,19 +12,16 @@ class Cell : public MecaCell::ConnectableCell<Cell, MecaCell::SpringBody> {
 	double originalRadius = 30.0;
 	double adhCoef = 25.0;
 	double contractRatio = 0.9;
-	double contractDuration = 0.8;
-	bool contract = false;
+	double contractDuration = 0.4;
 
 	using Parent = MecaCell::ConnectableCell<Cell, MecaCell::SpringBody>;
 	Cell(const MecaCell::Vector3D& v) : Parent(v) {}
 	double getAdhesionWith(Cell*, MecaCell::Vec) { return adhCoef; }
 
 	void startContracting() {
-		if (!contracting) {
-			originalRadius = this->body.getRestRadius();
-			contracting = true;
-			contractTime = 0.0;
-			contract = false;
+		contractTime = 0.0;
+    if (!contracting) {
+      contracting = true;
 			this->body.setRestRadius(originalRadius * contractRatio);
 		}
 	}
@@ -38,7 +35,6 @@ class Cell : public MecaCell::ConnectableCell<Cell, MecaCell::SpringBody> {
 				this->body.setRestRadius(originalRadius);
 			}
 		}
-		if (contract) startContracting();
 	}
 };
 #endif
