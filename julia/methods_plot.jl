@@ -37,7 +37,7 @@ function get_all(base::String)
     res
 end
 
-function plot_all(base::String)
+function plot_all(base::String, ycol::Int64=1)
     res = get_all(base)
     meanres = mean(res, 4)[:,:,:,1]
     stdres = std(res, 4)[:,:,:,1]
@@ -45,9 +45,9 @@ function plot_all(base::String)
     x = 1:size(res,2)
     for l in eachindex(logs)
         append!(layers,
-                [layer(x=meanres[l,x,3], y=meanres[l,x,1],
-                       ymax=meanres[l,x,1]+stdres[l,x,1]*0.5,
-                       ymin=meanres[l,x,1]-stdres[l,x,1]*0.5,
+                [layer(x=meanres[l,x,5], y=meanres[l,x,ycol],
+                       ymax=meanres[l,x,ycol]+stdres[l,x,ycol]*0.5,
+                       ymin=meanres[l,x,ycol]-stdres[l,x,ycol]*0.5,
                        Geom.line,
                        Geom.ribbon(),
                        style(default_color=colors[l]))])
@@ -59,6 +59,6 @@ function plot_all(base::String)
                    colors[1:5]),
                Guide.xlabel("Time"),
                Guide.ylabel("Distance"))
-    draw(PDF(string("plot/stingray.pdf"), 6inch, 4inch), plt)
+    draw(PDF(string("plot/stingray_",ycol,".pdf"), 6inch, 4inch), plt)
     layers
 end

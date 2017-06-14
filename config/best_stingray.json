@@ -6,7 +6,7 @@
 	"dopamine_delay": 1.0,
 	"stimulus_signal": 30.0,
 	"stimulus_interval": 100.0,
-	"stimulus_groups": 5,
+	"stimulus_groups": 5.0,
 	"sim_duration": 1000.0,
 	"sim_dt": 0.01,
 	"fluid_density": 0.001,
