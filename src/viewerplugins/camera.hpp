@@ -1,7 +1,7 @@
 #ifndef VIEWEREXTENSIONSCAMERA_HPP
 #define VIEWEREXTENSIONSCAMERA_HPP
 #include <mecacell/mecacell.h>
-#include <mecacellviewer/viewer.h>
+#include <mecacell/viewer/viewer.h>
 
 using namespace MecacellViewer;
 

@@ -1,7 +1,7 @@
 #ifndef DRAWEXTENSIONS_HPP
 #define DRAWEXTENSIONS_HPP
-#include <mecacellviewer/viewer.h>
-#include <mecacellviewer/primitives/sphere.hpp>
+#include <mecacell/viewer/viewer.h>
+#include <mecacell/viewer/primitives/sphere.hpp>
 #include <mecacell/utilities/grid.hpp>
 
 struct GridViewer {
@@ -43,7 +43,7 @@ struct GridViewer {
 			shader.setUniformValue(shader.uniformLocation("model"), model);
 			shader.setUniformValue(shader.uniformLocation("normalMatrix"), nmatrix);
 			shader.setUniformValue(shader.uniformLocation("color"), col);
-			GL->glDrawElements(GL_TRIANGLES, cube.indices.size(), GL_UNSIGNED_INT, 0);
+			GL()->glDrawElements(GL_TRIANGLES, cube.indices.size(), GL_UNSIGNED_INT, 0);
 		}
 		cube.vao.release();
 		shader.release();
@@ -104,7 +104,7 @@ struct PointViewer {
 			shader.setUniformValue(shader.uniformLocation("model"), model);
 			shader.setUniformValue(shader.uniformLocation("normalMatrix"), nmatrix);
 			shader.setUniformValue(shader.uniformLocation("color"), col);
-			GL->glDrawElements(GL_TRIANGLES, sphere.indices.size(), GL_UNSIGNED_INT, 0);
+			GL()->glDrawElements(GL_TRIANGLES, sphere.indices.size(), GL_UNSIGNED_INT, 0);
 		}
 		sphere.vao.release();
 		shader.release();

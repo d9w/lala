@@ -1,6 +1,6 @@
 #ifndef NEURONS_HPP
 #include <mecacell/mecacell.h>
-#include <mecacell/utilities/utils.h>
+#include <mecacell/utilities/utils.hpp>
 #include <mecacell/utilities/obj3D.hpp>
 #include <cmath>
 

@@ -22,7 +22,7 @@ class Cell : public MecaCell::ConnectableCell<Cell, MecaCell::SpringBody> {
 		contractTime = 0.0;
     if (!contracting) {
       contracting = true;
-			this->body.setRestRadius(originalRadius * contractRatio);
+			this->body.setRadius(originalRadius * contractRatio);
 		}
 	}
 
@@ -32,7 +32,7 @@ class Cell : public MecaCell::ConnectableCell<Cell, MecaCell::SpringBody> {
 			if (contractTime > contractDuration) {
 				contracting = false;
 				contractTime = 0.0;
-				this->body.setRestRadius(originalRadius);
+				this->body.setRadius(originalRadius);
 			}
 		}
 	}

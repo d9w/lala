@@ -1,11 +1,11 @@
 #ifndef SCENARIO_HPP
 #include <mecacell/mecacell.h>
-#include <mecacell/utilities/utils.h>
-#include <mecacell/plugins/simplifiedfluidplugin.hpp>
+#include <mecacell/utilities/utils.hpp>
 #include <mecacell/utilities/obj3D.hpp>
 #include <random>
 #include <cmath>
 #include <math.h>
+#include "fluidplugin.hpp"
 #include "config.hpp"
 #include "neurons.hpp"
 
@@ -269,7 +269,7 @@ template <typename cell_t, typename config_t> class Scenario {
 
 		for (const auto& p : cellsCoordinates) {
 			cell_t* c = new cell_t(p);
-			c->getBody().setRestRadius(config.cell_radius);
+			c->getBody().setRadius(config.cell_radius);
 			c->getBody().setStiffness(config.cell_stiffness);
 			c->getBody().setMass(config.cell_mass);
 			c->adhCoef = config.cell_adhesion;
