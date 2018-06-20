@@ -1,4 +1,5 @@
 {
 	"sim_shape": "config/worm.shape",
+	"neural_shape": "config/worm_neurons.shape",
 	"cell_radius": 30
 }

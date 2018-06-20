@@ -1,0 +1,10 @@
+{
+	"fluid_density": [0.0001, 0.001],
+	"stimulus_interval": [50.0, 200.0],
+	"stimulus_signal": [10.0, 50.0],
+	"stimulus_groups": [4, 8],
+	"inhibitory_ratio": [0.1, 0.3],
+	"connection_ratio": [0.1, 0.3],
+	"ninput": [100, 1000],
+	"nhidden": [100, 1000]
+}
