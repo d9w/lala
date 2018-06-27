@@ -20,7 +20,7 @@
 "cell_radius": 25.0,
 "neural_radius": 85.96,
 "reward_signal":0.09477147841608732,
-"sim_shape": "res/quadpus.shape",
+"sim_shape": "config/quadpus.shape",
 "neural_shape": "config/quadpus_neurons.shape",
 "cell_mass":0.05,
 "t_train":80,
