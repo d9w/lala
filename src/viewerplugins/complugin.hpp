@@ -1,6 +1,6 @@
 #ifndef COMPLUGIN_HPP
 #define COMPLUGIN_HPP
-#include <mecacell/viewer/viewer.h>
+#include <mecacellviewer/viewer.h>
 #include <mecacell/utilities/grid.hpp>
 
 struct CenterOfMassDrawer {

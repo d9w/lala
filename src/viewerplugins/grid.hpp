@@ -1,7 +1,7 @@
 #ifndef DRAWEXTENSIONS_HPP
 #define DRAWEXTENSIONS_HPP
-#include <mecacell/viewer/viewer.h>
-#include <mecacell/viewer/primitives/sphere.hpp>
+#include <mecacellviewer/viewer.h>
+#include <mecacellviewer/primitives/sphere.hpp>
 #include <mecacell/utilities/grid.hpp>
 
 struct GridViewer {

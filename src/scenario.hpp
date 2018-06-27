@@ -5,7 +5,7 @@
 #include <random>
 #include <cmath>
 #include <math.h>
-#include "fluidplugin.hpp"
+#include "simplifiedfluidplugin.hpp"
 #include "config.hpp"
 #include "neurons.hpp"
 
@@ -31,6 +31,7 @@ template <typename cell_t, typename config_t> struct rewardPlugin {
 	}
 
 	template <typename W> void preBehaviorUpdate(W* w) {
+    return;
 		if ((w->getNbUpdates() > 0) &&
         (w->getNbUpdates() % scenario->config.t_reward == 0)) {
       // MecaCell::logger<MecaCell::DBG>("Calculating reward");
@@ -84,6 +85,7 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 
 	template <typename W> void init(W* w, std::vector<MecaCell::Vec> neuralCoordinates,
                                   MecaCell::Vec com, double maxd) {
+    return;
 		MecaCell::Vec zvec(0.0, 0.0, 0.0);
 		for (int i = 0; i < scenario->config.ninput; i++) {
 			snn.neurons.push_back(Neuron(scenario->config.vr, NTinput, zvec));
@@ -152,6 +154,7 @@ template <typename cell_t, typename config_t> struct neuronPlugin {
 	}
 
 	template <typename W> void preBehaviorUpdate(W* w) {
+    return;
 		if ((w->getNbUpdates() > 0) &&
         (w->getNbUpdates() % scenario->config.t_fire == 0)) {
       // MecaCell::logger<MecaCell::DBG>("Firing");

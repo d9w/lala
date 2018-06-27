@@ -16,20 +16,21 @@ file(GLOB SRC
 	"src/config.hpp"
 	)
 
-link_directories(${MecaCellDir}/build/mecacell)
-link_directories(${MecaCellDir}/build/mecacellviewer)
-include_directories(${MecaCellDir})
+set(MECACELL_DIR include/mecacell)
+set(MECACELL_VIEWER_DIR ${MECACELL_DIR}/mecacellviewer)
 
 add_executable(console ${SRC} src/mainconsole.cpp)
-target_link_libraries(console mecacell)
+target_include_directories(console PUBLIC ${MECACELL_DIR})
 
-add_executable(spherepacking ${SRC} src/mainspherepacking.cpp)
-target_link_libraries(spherepacking mecacell)
+# add_executable(spherepacking ${SRC} src/mainspherepacking.cpp)
+# target_link_libraries(spherepacking mecacell)
 
+find_package(Qt5 COMPONENTS Core Quick REQUIRED)
 set(CMAKE_AUTOMOC ON)
-find_package(Qt5Core)
-find_package(Qt5Gui)
-find_package(Qt5Quick)
-find_package(Qt5OpenGL)
-add_executable(viewer ${SRC} src/mainviewer.cpp)
-target_link_libraries(viewer mecacell mecacellviewer Qt5::Quick Qt5::Core Qt5::Gui OpenGL)
+cmake_policy(SET CMP0071 NEW)
+qt5_wrap_cpp(MOC_SRC ${MECACELL_VIEWER_DIR}/signalslotbase.h ${MECACELL_VIEWER_DIR}/camera.hpp)
+qt5_add_resources(RESOURCES ${MECACELL_VIEWER_DIR}/resourcesLibMecacellViewer.qrc)
+
+add_executable(viewer ${SRC} ${MOC_SRC} ${RESOURCES} src/mainviewer.cpp)
+target_link_libraries(viewer Qt5::Core Qt5::Quick)
+target_include_directories(viewer PUBLIC ${MECACELL_DIR} ${MECACELL_VIEWER_DIR})
